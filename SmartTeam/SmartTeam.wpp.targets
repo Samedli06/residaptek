@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  
+  <!-- 
+    This file ensures uploads folder is preserved during ALL publish operations
+    Even if publish profile is replaced from SmarterASP
+  -->
+  
+  <PropertyGroup>
+    <ExcludeFoldersFromDeployment>wwwroot\uploads</ExcludeFoldersFromDeployment>
+  </PropertyGroup>
+
+  <!-- Skip uploads folder during MSDeploy -->
+  <ItemGroup>
+    <MsDeploySkipRules Include="SkipUploadsContent">
+      <ObjectName>filePath</ObjectName>
+      <AbsolutePath>uploads\\</AbsolutePath>
+      <SkipAction>Delete</SkipAction>
+    </MsDeploySkipRules>
+    <MsDeploySkipRules Include="SkipUploadsDirectory">
+      <ObjectName>dirPath</ObjectName>
+      <AbsolutePath>uploads\\</AbsolutePath>
+      <SkipAction>Delete</SkipAction>
+    </MsDeploySkipRules>
+  </ItemGroup>
+
+  <!-- Alternative: Skip specific subfolders -->
+  <ItemGroup>
+    <MsDeploySkipRules Include="SkipProductImages">
+      <ObjectName>dirPath</ObjectName>
+      <AbsolutePath>uploads\\products</AbsolutePath>
+      <SkipAction>Delete</SkipAction>
+    </MsDeploySkipRules>
+    <MsDeploySkipRules Include="SkipBannerImages">
+      <ObjectName>dirPath</ObjectName>
+      <AbsolutePath>uploads\\banners</AbsolutePath>
+      <SkipAction>Delete</SkipAction>
+    </MsDeploySkipRules>
+    <MsDeploySkipRules Include="SkipCategoryImages">
+      <ObjectName>dirPath</ObjectName>
+      <AbsolutePath>uploads\\categories</AbsolutePath>
+      <SkipAction>Delete</SkipAction>
+    </MsDeploySkipRules>
+    <MsDeploySkipRules Include="SkipBrandImages">
+      <ObjectName>dirPath</ObjectName>
+      <AbsolutePath>uploads\\brands</AbsolutePath>
+      <SkipAction>Delete</SkipAction>
+    </MsDeploySkipRules>
+  </ItemGroup>
+
+</Project>
+

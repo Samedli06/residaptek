@@ -1,0 +1,4 @@
+# This file ensures the uploads directory is preserved during deployment
+# DO NOT DELETE THIS FILE
+# All uploaded images are stored in this directory
+

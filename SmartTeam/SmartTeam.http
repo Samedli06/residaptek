@@ -1,0 +1,6 @@
+@SmartTeam_HostAddress = http://localhost:5055
+
+GET {{SmartTeam_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
