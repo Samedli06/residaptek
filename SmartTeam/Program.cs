@@ -27,12 +27,6 @@ namespace SmartTeam
                     policy.WithOrigins(
                         "http://localhost:5173", 
                         "https://localhost:5173",
-                        "https://gunaybeauty.az",
-                        "http://gunaybeauty.az",
-                        "https://www.gunaybeauty.az",
-                        "http://www.gunaybeauty.az",
-                        "http://gunaybeauty-001-site1.ltempurl.com",
-                        "https://gunaybeauty.netlify.app"
                     )
                     .AllowAnyHeader()
                     .AllowAnyMethod()
@@ -71,7 +65,7 @@ namespace SmartTeam
             {
                 options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
                 {
-                    Title = "GunayBeauty E-Commerce API",
+                    Title = "Residaptek E-Commerce API",
                     Version = "v1",
                     Description = "A comprehensive beauty e-commerce API with role-based pricing and JWT authentication"
                 });
@@ -160,7 +154,7 @@ namespace SmartTeam
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "GunayBeauty API v1");
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Residaptek API v1");
                 options.RoutePrefix = "swagger";
             });
 

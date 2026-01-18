@@ -28,7 +28,7 @@ public static class DbInitializer
             Id = Guid.NewGuid(),
             FirstName = "Admin",
             LastName = "User",
-            Email = "admin@gunaybeauty.az",
+            Email = "admin@residaptek.az",
             Role = UserRole.Admin,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
@@ -39,7 +39,7 @@ public static class DbInitializer
             Id = Guid.NewGuid(),
             FirstName = "Test",
             LastName = "User",
-            Email = "test@gunaybeauty.az",
+            Email = "test@residaptek.az",
             Role = UserRole.NormalUser,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
@@ -294,7 +294,7 @@ public static class DbInitializer
 
     private static async Task EnsureAdminUserAsync(SmartTeamDbContext context)
     {
-        var adminEmail = "admin@gunaybeauty.az";
+        var adminEmail = "admin@residaptek.az";
         var adminUser = await context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
         var passwordHasher = new PasswordHasher<User>();
 

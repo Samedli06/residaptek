@@ -11,7 +11,7 @@ public class UserService : IUserService
     private readonly IMapper _mapper;
     
     // Protected admin account that cannot be deleted, deactivated, or have its role changed
-    private const string PROTECTED_ADMIN_EMAIL = "admin@gunaybeauty.az";
+    private const string PROTECTED_ADMIN_EMAIL = "admin@residaptek.az";
 
     public UserService(IUnitOfWork unitOfWork, IMapper mapper)
     {
