@@ -38,6 +38,7 @@ namespace SmartTeam
 
             builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
             builder.Services.Configure<SmartTeam.Infrastructure.Services.EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+            builder.Services.Configure<SmartTeam.Application.Configuration.BonusSettings>(builder.Configuration.GetSection("BonusSettings"));
             var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
             builder.Services.AddAuthentication(options =>
             {

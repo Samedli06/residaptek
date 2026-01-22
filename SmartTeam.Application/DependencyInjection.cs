@@ -29,6 +29,8 @@ public static class DependencyInjection
         services.AddScoped<IProductPdfService, ProductPdfService>();
         services.AddScoped<IBrandService, BrandService>();
         services.AddScoped<IPromoCodeService, PromoCodeService>();
+        services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<IOrderService, OrderService>();
 
         return services;
     }
