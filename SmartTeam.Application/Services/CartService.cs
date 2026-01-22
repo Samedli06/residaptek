@@ -64,6 +64,12 @@ public class CartService : ICartService
             throw new InvalidOperationException($"Insufficient stock. Available: {product.StockQuantity}");
         }
 
+        // Check minimum order quantity
+        if (addToCartDto.Quantity < product.MinimumOrderQuantity)
+        {
+            throw new InvalidOperationException($"Minimum order quantity for this product is {product.MinimumOrderQuantity}.");
+        }
+
         // Use discounted price if available, otherwise regular price
         decimal unitPrice = product.DiscountedPrice ?? product.Price;
 
@@ -142,6 +148,12 @@ public class CartService : ICartService
             if (product != null && product.StockQuantity < updateCartItemDto.Quantity)
             {
                 throw new InvalidOperationException($"Insufficient stock. Available: {product.StockQuantity}");
+            }
+
+            // Check minimum order quantity
+            if (product != null && updateCartItemDto.Quantity < product.MinimumOrderQuantity)
+            {
+                throw new InvalidOperationException($"Minimum order quantity for this product is {product.MinimumOrderQuantity}.");
             }
 
             cartItem.Quantity = updateCartItemDto.Quantity;
@@ -266,6 +278,12 @@ public class CartService : ICartService
         if (product.StockQuantity < quickOrderDto.Quantity)
         {
             throw new InvalidOperationException($"Insufficient stock. Available: {product.StockQuantity}");
+        }
+
+        // Check minimum order quantity
+        if (quickOrderDto.Quantity < product.MinimumOrderQuantity)
+        {
+            throw new InvalidOperationException($"Minimum order quantity for this product is {product.MinimumOrderQuantity}.");
         }
 
         decimal unitPrice = product.DiscountedPrice ?? product.Price;

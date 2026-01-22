@@ -11,6 +11,7 @@ public class Product
     public bool IsActive { get; set; } = true;
     public bool IsHotDeal { get; set; } = false;
     public int StockQuantity { get; set; }
+    public int MinimumOrderQuantity { get; set; } = 1;
     public string? ImageUrl { get; set; } // Main product image URL
     public string? DetailImageUrl { get; set; } // Detail page image URL
     public DateTime CreatedAt { get; set; }

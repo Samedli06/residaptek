@@ -13,6 +13,7 @@ public class ProductDto
     public bool IsActive { get; set; }
     public bool IsHotDeal { get; set; }
     public int StockQuantity { get; set; }
+    public int MinimumOrderQuantity { get; set; }
     public Guid CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public string CategorySlug { get; set; } = string.Empty;
@@ -40,6 +41,7 @@ public class ProductListDto
     public string Sku { get; set; } = string.Empty;
     public bool IsHotDeal { get; set; }
     public int StockQuantity { get; set; }
+    public int MinimumOrderQuantity { get; set; }
     public Guid CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public string CategorySlug { get; set; } = string.Empty;
@@ -76,6 +78,7 @@ public class CreateProductDto
     public string Sku { get; set; } = string.Empty;
     public bool IsHotDeal { get; set; }
     public int StockQuantity { get; set; }
+    public int MinimumOrderQuantity { get; set; } = 1;
     public Guid CategoryId { get; set; }
     public Guid? BrandId { get; set; }
     public decimal Price { get; set; }
@@ -90,6 +93,7 @@ public class CreateProductWithImageDto
     public string Sku { get; set; } = string.Empty;
     public bool IsHotDeal { get; set; }
     public int StockQuantity { get; set; }
+    public int MinimumOrderQuantity { get; set; } = 1;
     public Guid CategoryId { get; set; }
     public Guid? BrandId { get; set; }
     public decimal Price { get; set; }
@@ -105,6 +109,7 @@ public class UpdateProductDto
     public bool IsActive { get; set; }
     public bool IsHotDeal { get; set; }
     public int StockQuantity { get; set; }
+    public int MinimumOrderQuantity { get; set; }
     public Guid CategoryId { get; set; }
     public Guid? BrandId { get; set; }
     public decimal Price { get; set; }
