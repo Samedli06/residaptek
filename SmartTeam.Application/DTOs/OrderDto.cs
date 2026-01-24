@@ -10,6 +10,7 @@ public class CreateOrderDto
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? DeliveryNotes { get; set; }
+    public decimal? UseWalletAmount { get; set; }
 }
 
 public class OrderDto
@@ -26,6 +27,7 @@ public class OrderDto
     public List<OrderItemDto> Items { get; set; } = new();
     public decimal SubTotal { get; set; }
     public decimal? PromoCodeDiscount { get; set; }
+    public decimal? WalletDiscount { get; set; }
     public decimal TotalAmount { get; set; }
     public OrderStatus Status { get; set; }
     public string StatusText { get; set; } = string.Empty;

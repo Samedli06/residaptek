@@ -21,6 +21,7 @@ public class Order
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
     public decimal SubTotal { get; set; }
     public decimal? PromoCodeDiscount { get; set; }
+    public decimal? WalletDiscount { get; set; }
     public decimal TotalAmount { get; set; }
     
     // Status & Tracking

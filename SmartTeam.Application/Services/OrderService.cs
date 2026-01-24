@@ -97,6 +97,31 @@ public class OrderService : IOrderService
         
         decimal totalAmount = subTotal - promoDiscount;
 
+        // 3.5. Apply Wallet Balance if requested
+        decimal walletDiscount = 0;
+        if (createOrderDto.UseWalletAmount.HasValue && createOrderDto.UseWalletAmount.Value > 0)
+        {
+            var requestedWalletAmount = createOrderDto.UseWalletAmount.Value;
+            
+            // Validate wallet amount doesn't exceed order total
+            if (requestedWalletAmount > totalAmount)
+            {
+                throw new InvalidOperationException($"Wallet amount ({requestedWalletAmount}) cannot exceed order total ({totalAmount}).");
+            }
+            
+            // Debit wallet (this will validate sufficient balance)
+            await _walletService.DebitWalletAsync(
+                userId, 
+                requestedWalletAmount, 
+                "Used for order payment", 
+                null, // OrderId will be set after order is created
+                cancellationToken
+            );
+            
+            walletDiscount = requestedWalletAmount;
+            totalAmount -= walletDiscount;
+        }
+
         // 4. Create Order
         var order = new Order
         {
@@ -111,7 +136,8 @@ public class OrderService : IOrderService
             DeliveryNotes = createOrderDto.DeliveryNotes,
             SubTotal = subTotal,
             PromoCodeDiscount = promoDiscount,
-            TotalAmount = totalAmount, // Shipping is Free
+            WalletDiscount = walletDiscount > 0 ? walletDiscount : null,
+            TotalAmount = totalAmount, // After all discounts
             Status = OrderStatus.Pending,
             CreatedAt = DateTime.UtcNow,
             BonusAwarded = false,
@@ -258,7 +284,27 @@ public class OrderService : IOrderService
         var itemDtos = new List<OrderItemDto>();
         foreach(var item in items)
         {
-            // Ideally fetch product image, for now skip or minimal
+            // Fetch product to get image
+            var product = await _unitOfWork.Repository<Product>().GetByIdAsync(item.ProductId, cancellationToken);
+            
+            string? imageUrl = null;
+            if (product != null)
+            {
+                // Get primary image from ProductImage collection
+                var primaryImage = await _unitOfWork.Repository<ProductImage>()
+                    .FirstOrDefaultAsync(pi => pi.ProductId == product.Id && pi.IsPrimary, cancellationToken);
+
+                // If no primary image found, get the first available image
+                if (primaryImage == null)
+                {
+                    primaryImage = await _unitOfWork.Repository<ProductImage>()
+                        .FirstOrDefaultAsync(pi => pi.ProductId == product.Id, cancellationToken);
+                }
+
+                // Use thumbnail if available, otherwise use main image
+                imageUrl = primaryImage?.ThumbnailUrl ?? primaryImage?.ImageUrl ?? product.ImageUrl;
+            }
+
              itemDtos.Add(new OrderItemDto
              {
                  ProductId = item.ProductId,
@@ -266,7 +312,8 @@ public class OrderService : IOrderService
                  ProductSku = item.ProductSku,
                  Quantity = item.Quantity,
                  UnitPrice = item.UnitPrice,
-                 TotalPrice = item.TotalPrice
+                 TotalPrice = item.TotalPrice,
+                 ProductImageUrl = imageUrl
              });
         }
 
@@ -284,6 +331,7 @@ public class OrderService : IOrderService
             Items = itemDtos,
             SubTotal = order.SubTotal,
             PromoCodeDiscount = order.PromoCodeDiscount,
+            WalletDiscount = order.WalletDiscount,
             TotalAmount = order.TotalAmount,
             Status = order.Status,
             StatusText = order.Status.ToString(),

@@ -108,6 +108,62 @@ public class WalletService : IWalletService
         };
     }
 
+    public async Task<WalletTransactionDto> DebitWalletAsync(Guid userId, decimal amount, string description, Guid? orderId = null, CancellationToken cancellationToken = default)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentException("Debit amount must be greater than zero.");
+        }
+
+        // Get wallet
+        var wallet = await _unitOfWork.Repository<UserWallet>()
+            .FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
+
+        if (wallet == null)
+        {
+            throw new InvalidOperationException("Wallet not found.");
+        }
+
+        // Validate sufficient balance
+        if (wallet.Balance < amount)
+        {
+            throw new InvalidOperationException($"Insufficient wallet balance. Available: {wallet.Balance}, Requested: {amount}");
+        }
+
+        var balanceBefore = wallet.Balance;
+        wallet.Balance -= amount;
+        wallet.UpdatedAt = DateTime.UtcNow;
+
+        var transaction = new WalletTransaction
+        {
+            Id = Guid.NewGuid(),
+            WalletId = wallet.Id,
+            Type = TransactionType.Debit,
+            Amount = amount,
+            BalanceBefore = balanceBefore,
+            BalanceAfter = wallet.Balance,
+            Description = description,
+            OrderId = orderId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _unitOfWork.Repository<UserWallet>().Update(wallet);
+        await _unitOfWork.Repository<WalletTransaction>().AddAsync(transaction, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new WalletTransactionDto
+        {
+            Id = transaction.Id,
+            Type = transaction.Type,
+            TypeText = transaction.Type.ToString(),
+            Amount = transaction.Amount,
+            BalanceBefore = transaction.BalanceBefore,
+            BalanceAfter = transaction.BalanceAfter,
+            Description = transaction.Description,
+            CreatedAt = transaction.CreatedAt
+        };
+    }
+
     public async Task<IEnumerable<WalletTransactionDto>> GetTransactionHistoryAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var wallet = await _unitOfWork.Repository<UserWallet>()
