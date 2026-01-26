@@ -5,6 +5,7 @@ using SmartTeam.Application.Services;
 using SmartTeam.Domain.Entities;
 using SmartTeam.Domain.Interfaces;
 using System.Net;
+using SmartTeam.Application.Helpers;
 
 namespace SmartTeam.Application.Services;
 
@@ -166,7 +167,7 @@ public class ProductService : IProductService
                 ImageUrl = product.ImageUrl,
                 IsPrimary = true,
                 SortOrder = 1,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             await _unitOfWork.Repository<ProductImage>().AddAsync(mainImageAsProductImage, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -200,7 +201,7 @@ public class ProductService : IProductService
                 ImageUrl = product.ImageUrl,
                 IsPrimary = true,
                 SortOrder = 1,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             await _unitOfWork.Repository<ProductImage>().AddAsync(mainImageAsProductImage, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -240,7 +241,7 @@ public class ProductService : IProductService
                 ImageUrl = product.ImageUrl,
                 IsPrimary = true,
                 SortOrder = 1,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             await _unitOfWork.Repository<ProductImage>().AddAsync(mainImageAsProductImage, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -343,7 +344,7 @@ public class ProductService : IProductService
             IsActive = true,
             Price = createProductDto.Price,
             DiscountedPrice = createProductDto.DiscountedPrice,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = TimeHelper.Now
         };
 
         // Upload image
@@ -411,7 +412,7 @@ public class ProductService : IProductService
         }
 
         _mapper.Map(updateProductDto, product);
-        product.UpdatedAt = DateTime.UtcNow;
+        product.UpdatedAt = TimeHelper.Now;
         
         _unitOfWork.Repository<Product>().Update(product);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -455,7 +456,7 @@ public class ProductService : IProductService
         
         // Map the DTO to product entity
         _mapper.Map(updateProductDto, product);
-        product.UpdatedAt = DateTime.UtcNow;
+        product.UpdatedAt = TimeHelper.Now;
 
         // Upload new image if provided (after mapping to avoid overwrite)
         if (imageFile != null && imageFile.Length > 0)
@@ -508,7 +509,7 @@ public class ProductService : IProductService
 
         // Map the DTO to product entity
         _mapper.Map(updateProductDto, product);
-        product.UpdatedAt = DateTime.UtcNow;
+        product.UpdatedAt = TimeHelper.Now;
 
         // Upload new main image if provided
         if (imageFile != null && imageFile.Length > 0)
@@ -535,7 +536,7 @@ public class ProductService : IProductService
                         IsDetailImage = true,
                         IsPrimary = false,
                         SortOrder = 999, // High sort order to distinguish from normal images
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = TimeHelper.Now
                     };
 
                     await _unitOfWork.Repository<ProductImage>().AddAsync(productImage, cancellationToken);
@@ -618,7 +619,7 @@ public class ProductService : IProductService
                 existingPdf.FilePath = newPdfPath;
                 existingPdf.ContentType = pdfFile.ContentType;
                 existingPdf.FileSize = pdfFile.Length;
-                existingPdf.UpdatedAt = DateTime.UtcNow;
+                existingPdf.UpdatedAt = TimeHelper.Now;
                 existingPdf.UpdatedBy = userId;
                 
                 _unitOfWork.Repository<ProductPdf>().Update(existingPdf);
@@ -639,7 +640,7 @@ public class ProductService : IProductService
                     FileSize = pdfFile.Length,
                     IsActive = true,
                     CreatedBy = userId ?? Guid.Empty,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = TimeHelper.Now
                 };
 
                 await _unitOfWork.Repository<ProductPdf>().AddAsync(productPdf, cancellationToken);
@@ -672,7 +673,7 @@ public class ProductService : IProductService
         if (inCart)
         {
             product.IsActive = false;
-            product.UpdatedAt = DateTime.UtcNow;
+            product.UpdatedAt = TimeHelper.Now;
             _unitOfWork.Repository<Product>().Update(product);
         }
         else
@@ -752,7 +753,7 @@ public class ProductService : IProductService
 
         var imageUrl = await _fileUploadService.UploadFileAsync(imageFile, "products");
         product.ImageUrl = imageUrl;
-        product.UpdatedAt = DateTime.UtcNow;
+        product.UpdatedAt = TimeHelper.Now;
 
         _unitOfWork.Repository<Product>().Update(product);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -786,7 +787,7 @@ public class ProductService : IProductService
             // IMPORTANT: Do NOT remove existing images - only append new detail images
             // This preserves the main product image (Product.ImageUrl) and all existing ProductImage records
 
-            product.UpdatedAt = DateTime.UtcNow;
+            product.UpdatedAt = TimeHelper.Now;
 
             // Add new detail images without removing existing ones
             for (int i = 0; i < imageUrls.Count; i++)

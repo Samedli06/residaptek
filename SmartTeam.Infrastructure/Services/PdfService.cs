@@ -49,13 +49,13 @@ public class PdfService : IPdfService
         {
             row.RelativeItem().Column(column =>
             {
-                column.Item().Text("Resid Aptek").FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
-                column.Item().Text("Baki ş. Nizami r. Çobanzadə 2526 məh").FontSize(10);
-                column.Item().Text("Tel: +994 55 555 55 55").FontSize(10);
+                column.Item().Text("E-DEPO").FontSize(24).ExtraBold().FontColor(Colors.Blue.Medium);
+                column.Item().Text("Bakı Masazır, Yeni Bakı 16").FontSize(10);
+                column.Item().Text("Tel: +994 993 99 96 76").FontSize(10);
                 column.Item().Text("Email: office@residaptek.az").FontSize(10);
             });
 
-            row.ConstantItem(100).Column(column =>
+            row.ConstantItem(150).Column(column =>
             {
                 column.Item().Text("QAİMƏ").FontSize(20).SemiBold().AlignRight();
                 column.Item().Text(order.OrderNumber).FontSize(12).AlignRight();
@@ -90,16 +90,45 @@ public class PdfService : IPdfService
 
             column.Item().PaddingTop(25).Element(ele => ComposeTable(ele, order));
             
-            column.Item().PaddingTop(20).Row(row =>
+            // Financials
+            column.Item().PaddingTop(20).Column(col => 
             {
-                row.RelativeItem().Height(30).AlignRight().Text($"Yekun Məbləğ: {order.TotalAmount:N2} ₼").FontSize(16).SemiBold();
+                // Subtotal
+                col.Item().Row(row =>
+                {
+                    row.RelativeItem().AlignRight().Text($"Cəm Məbləğ: {order.SubTotal:N2} ₼").FontSize(10);
+                });
+
+                // Promo Discount
+                if (order.PromoCodeDiscount.HasValue && order.PromoCodeDiscount > 0)
+                {
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().AlignRight().Text($"Promo Kod Endirimi: -{order.PromoCodeDiscount:N2} ₼").FontSize(10).FontColor(Colors.Red.Medium);
+                    });
+                }
+
+                // Wallet Discount
+                if (order.WalletDiscount.HasValue && order.WalletDiscount > 0)
+                {
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().AlignRight().Text($"Balansdan Ödəniş: -{order.WalletDiscount:N2} ₼").FontSize(10).FontColor(Colors.Red.Medium);
+                    });
+                }
+
+                // Total
+                col.Item().PaddingTop(5).Row(row =>
+                {
+                    row.RelativeItem().AlignRight().Text($"Yekun Məbləğ: {order.TotalAmount:N2} ₼").FontSize(16).SemiBold();
+                });
             });
             
             if (order.BonusAmount.HasValue && order.BonusAmount > 0)
             {
-                column.Item().Row(row =>
+                column.Item().PaddingTop(5).Row(row =>
                 {
-                    row.RelativeItem().AlignRight().Text($"Bonus: {order.BonusAmount:N2} ₼").FontSize(10).FontColor(Colors.Green.Medium);
+                    row.RelativeItem().AlignRight().Text($"Qazanılan Bonus: {order.BonusAmount:N2} ₼").FontSize(10).FontColor(Colors.Green.Medium);
                 });
             }
         });

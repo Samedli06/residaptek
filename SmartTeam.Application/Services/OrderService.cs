@@ -1,9 +1,13 @@
 using AutoMapper;
 using Microsoft.Extensions.Options;
 using SmartTeam.Application.Configuration;
+using AutoMapper;
+using Microsoft.Extensions.Options;
+using SmartTeam.Application.Configuration;
 using SmartTeam.Application.DTOs;
 using SmartTeam.Domain.Entities;
 using SmartTeam.Domain.Interfaces;
+using SmartTeam.Application.Helpers;
 
 namespace SmartTeam.Application.Services;
 
@@ -255,15 +259,15 @@ public class OrderService : IOrderService
 
         var oldStatus = order.Status;
         order.Status = updateDto.Status;
-        order.UpdatedAt = DateTime.UtcNow;
+        order.UpdatedAt = TimeHelper.Now;
 
         if (updateDto.Status == OrderStatus.Confirmed && oldStatus != OrderStatus.Confirmed)
         {
-            order.ConfirmedAt = DateTime.UtcNow;
+            order.ConfirmedAt = TimeHelper.Now;
         }
         else if (updateDto.Status == OrderStatus.Delivered && oldStatus != OrderStatus.Delivered)
         {
-            order.DeliveredAt = DateTime.UtcNow;
+            order.DeliveredAt = TimeHelper.Now;
             
             // Award Bonus
             if (!order.BonusAwarded)
@@ -273,7 +277,7 @@ public class OrderService : IOrderService
         }
         else if (updateDto.Status == OrderStatus.Cancelled)
         {
-            order.CancelledAt = DateTime.UtcNow;
+            order.CancelledAt = TimeHelper.Now;
         }
 
         _unitOfWork.Repository<Order>().Update(order);

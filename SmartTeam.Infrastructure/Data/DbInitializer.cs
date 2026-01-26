@@ -1,6 +1,7 @@
 using SmartTeam.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using SmartTeam.Application.Helpers;
 
 namespace SmartTeam.Infrastructure.Data;
 
@@ -32,7 +33,7 @@ public static class DbInitializer
             Email = "admin@residaptek.az",
             Role = UserRole.Admin,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = TimeHelper.Now
         };
         adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "Admin123!");
         var testUser = new User
@@ -43,7 +44,7 @@ public static class DbInitializer
             Email = "test@residaptek.az",
             Role = UserRole.NormalUser,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = TimeHelper.Now
         };
         testUser.PasswordHash = passwordHasher.HashPassword(testUser, "Test123!");
 
@@ -61,7 +62,7 @@ public static class DbInitializer
                 Type = FilterType.Select,
                 IsActive = true,
                 SortOrder = 1,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             await context.Filters.AddAsync(brandFilter);
         }
@@ -77,7 +78,7 @@ public static class DbInitializer
                 Type = FilterType.Select,
                 IsActive = true,
                 SortOrder = 2,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             await context.Filters.AddAsync(sizeFilter);
         }
@@ -93,7 +94,7 @@ public static class DbInitializer
                 Type = FilterType.Range,
                 IsActive = true,
                 SortOrder = 3,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             await context.Filters.AddAsync(priceFilter);
         }
@@ -118,7 +119,7 @@ public static class DbInitializer
                 StockQuantity = 50,
                 Price = 12m,
                 DiscountedPrice = 10m,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
 
             var product2 = new Product
@@ -134,7 +135,7 @@ public static class DbInitializer
                 IsHotDeal = false,
                 StockQuantity = 100,
                 Price = 45m,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             
             if (!await context.Products.AnyAsync()) 
@@ -150,11 +151,11 @@ public static class DbInitializer
         {
             var brandOptions = new[]
             {
-                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "apple", DisplayName = "Apple", IsActive = true, SortOrder = 1, CreatedAt = DateTime.UtcNow },
-                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "samsung", DisplayName = "Samsung", IsActive = true, SortOrder = 2, CreatedAt = DateTime.UtcNow },
-                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "nike", DisplayName = "Nike", IsActive = true, SortOrder = 3, CreatedAt = DateTime.UtcNow },
-                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "charlotte-tilbury", DisplayName = "Charlotte Tilbury", IsActive = true, SortOrder = 4, CreatedAt = DateTime.UtcNow },
-                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "mac", DisplayName = "MAC", IsActive = true, SortOrder = 5, CreatedAt = DateTime.UtcNow }
+                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "apple", DisplayName = "Apple", IsActive = true, SortOrder = 1, CreatedAt = TimeHelper.Now },
+                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "samsung", DisplayName = "Samsung", IsActive = true, SortOrder = 2, CreatedAt = TimeHelper.Now },
+                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "nike", DisplayName = "Nike", IsActive = true, SortOrder = 3, CreatedAt = TimeHelper.Now },
+                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "charlotte-tilbury", DisplayName = "Charlotte Tilbury", IsActive = true, SortOrder = 4, CreatedAt = TimeHelper.Now },
+                new FilterOption { Id = Guid.NewGuid(), FilterId = brandFilter.Id, Value = "mac", DisplayName = "MAC", IsActive = true, SortOrder = 5, CreatedAt = TimeHelper.Now }
             };
             await context.FilterOptions.AddRangeAsync(brandOptions);
         }
@@ -163,9 +164,9 @@ public static class DbInitializer
         {
             var sizeOptions = new[]
             {
-                new FilterOption { Id = Guid.NewGuid(), FilterId = sizeFilter.Id, Value = "s", DisplayName = "Small", IsActive = true, SortOrder = 1, CreatedAt = DateTime.UtcNow },
-                new FilterOption { Id = Guid.NewGuid(), FilterId = sizeFilter.Id, Value = "m", DisplayName = "Medium", IsActive = true, SortOrder = 2, CreatedAt = DateTime.UtcNow },
-                new FilterOption { Id = Guid.NewGuid(), FilterId = sizeFilter.Id, Value = "l", DisplayName = "Large", IsActive = true, SortOrder = 3, CreatedAt = DateTime.UtcNow }
+                new FilterOption { Id = Guid.NewGuid(), FilterId = sizeFilter.Id, Value = "s", DisplayName = "Small", IsActive = true, SortOrder = 1, CreatedAt = TimeHelper.Now },
+                new FilterOption { Id = Guid.NewGuid(), FilterId = sizeFilter.Id, Value = "m", DisplayName = "Medium", IsActive = true, SortOrder = 2, CreatedAt = TimeHelper.Now },
+                new FilterOption { Id = Guid.NewGuid(), FilterId = sizeFilter.Id, Value = "l", DisplayName = "Large", IsActive = true, SortOrder = 3, CreatedAt = TimeHelper.Now }
             };
             await context.FilterOptions.AddRangeAsync(sizeOptions);
         }
@@ -261,7 +262,7 @@ public static class DbInitializer
                 ParentCategoryId = parentId,
                 IsActive = true,
                 SortOrder = sortOrder,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             await context.Categories.AddAsync(category);
             // Save immediately to generate ID for children
@@ -310,7 +311,7 @@ public static class DbInitializer
                 Email = adminEmail,
                 Role = UserRole.Admin,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "Admin123!");
             await context.Users.AddAsync(adminUser);
@@ -322,7 +323,7 @@ public static class DbInitializer
             adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "Admin123!");
             adminUser.Role = UserRole.Admin;
             adminUser.IsActive = true;
-            adminUser.UpdatedAt = DateTime.UtcNow;
+            adminUser.UpdatedAt = TimeHelper.Now;
             context.Users.Update(adminUser);
             await context.SaveChangesAsync();
         }
@@ -346,7 +347,7 @@ public static class DbInitializer
                 Email = adminEmail,
                 Role = UserRole.Admin,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.Now
             };
             adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "9jovpqq20");
             await context.Users.AddAsync(adminUser);
@@ -358,7 +359,7 @@ public static class DbInitializer
             adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "9jovpqq20");
             adminUser.Role = UserRole.Admin;
             adminUser.IsActive = true;
-            adminUser.UpdatedAt = DateTime.UtcNow;
+            adminUser.UpdatedAt = TimeHelper.Now;
             context.Users.Update(adminUser);
             await context.SaveChangesAsync();   
         }
