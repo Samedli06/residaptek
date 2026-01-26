@@ -49,6 +49,7 @@ public interface IProductService
     Task<PagedResultDto<ProductListDto>> GetHotDealsPaginatedAsync(HotDealsPaginationRequestDto request, UserRole? userRole = null, Guid? userId = null, CancellationToken cancellationToken = default);
     Task<PagedResultDto<ProductListDto>> SearchProductsPaginatedAsync(SearchPaginationRequestDto request, UserRole? userRole = null, Guid? userId = null, CancellationToken cancellationToken = default);
     Task<PagedResultDto<ProductListDto>> GetRecommendedProductsPaginatedAsync(RecommendedProductsPaginationRequestDto request, UserRole? userRole = null, Guid? userId = null, CancellationToken cancellationToken = default);
+    Task<PagedResultDto<ProductListDto>> GetRecentlyAddedProductsAsync(int page = 1, int pageSize = 10, UserRole? userRole = null, Guid? userId = null, CancellationToken cancellationToken = default);
     
     // Diagnostic methods
     Task<object> DiagnoseCategoryStructureAsync(Guid? categoryId = null, CancellationToken cancellationToken = default);

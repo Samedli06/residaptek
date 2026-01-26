@@ -11,6 +11,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        // Configure QuestPDF license
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
         // Add Entity Framework
         services.AddDbContext<SmartTeamDbContext>(options =>
             options.UseSqlServer(
@@ -35,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<SmartTeam.Application.Services.IFileUploadService, SmartTeam.Infrastructure.Services.FileUploadService>();
         services.AddScoped<SmartTeam.Application.Services.IEmailService, SmartTeam.Infrastructure.Services.EmailService>();
         services.AddScoped<SmartTeam.Application.Services.IImageCompressionService, SmartTeam.Infrastructure.Services.ImageCompressionService>();
+        services.AddScoped<SmartTeam.Application.Services.IPdfService, SmartTeam.Infrastructure.Services.PdfService>();
 
         return services;
     }

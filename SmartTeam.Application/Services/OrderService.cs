@@ -188,22 +188,64 @@ public class OrderService : IOrderService
             });
     }
 
-    public async Task<IEnumerable<OrderListDto>> GetAllOrdersAsync(CancellationToken cancellationToken = default)
+    public async Task<PagedResultDto<OrderListDto>> GetAllOrdersAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var orders = await _unitOfWork.Repository<Order>().GetAllAsync(cancellationToken);
-        
-        return orders.OrderByDescending(o => o.CreatedAt)
-            .Select(o => new OrderListDto
-            {
-                Id = o.Id,
-                OrderNumber = o.OrderNumber,
-                CustomerName = o.CustomerName,
-                TotalAmount = o.TotalAmount,
-                Status = o.Status,
-                StatusText = o.Status.ToString(),
-                CreatedAt = o.CreatedAt,
-                ItemsCount = 0 
-            });
+        var (items, totalCount) = await _unitOfWork.Repository<Order>().GetPagedAsync(
+            page, 
+            pageSize, 
+            predicate: null,
+            orderBy: q => q.OrderByDescending(o => o.CreatedAt),
+            cancellationToken: cancellationToken);
+
+        var orderDtos = items.Select(o => new OrderListDto
+        {
+            Id = o.Id,
+            OrderNumber = o.OrderNumber,
+            CustomerName = o.CustomerName,
+            TotalAmount = o.TotalAmount,
+            Status = o.Status,
+            StatusText = o.Status.ToString(),
+            CreatedAt = o.CreatedAt,
+            ItemsCount = 0 
+        }).ToList();
+
+        return new PagedResultDto<OrderListDto>
+        {
+            Items = orderDtos,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task<PagedResultDto<OrderListDto>> SearchOrdersByNameAsync(string customerName, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var (items, totalCount) = await _unitOfWork.Repository<Order>().GetPagedAsync(
+            page, 
+            pageSize, 
+            predicate: o => o.CustomerName.Contains(customerName),
+            orderBy: q => q.OrderByDescending(o => o.CreatedAt),
+            cancellationToken: cancellationToken);
+
+        var orderDtos = items.Select(o => new OrderListDto
+        {
+            Id = o.Id,
+            OrderNumber = o.OrderNumber,
+            CustomerName = o.CustomerName,
+            TotalAmount = o.TotalAmount,
+            Status = o.Status,
+            StatusText = o.Status.ToString(),
+            CreatedAt = o.CreatedAt,
+            ItemsCount = 0 
+        }).ToList();
+
+        return new PagedResultDto<OrderListDto>
+        {
+            Items = orderDtos,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<OrderDto> UpdateOrderStatusAsync(Guid orderId, UpdateOrderStatusDto updateDto, CancellationToken cancellationToken = default)
@@ -274,6 +316,35 @@ public class OrderService : IOrderService
     {
         // Simple generation: ORD-YYYYMMDD-XXXX
         return $"ORD-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
+    }
+
+    public async Task<IEnumerable<OrderDto>> GetOrdersForExportAsync(DateTime? fromDate, DateTime? toDate, OrderStatus? status, CancellationToken cancellationToken = default)
+    {
+        // Fetch with Includes for items using inline filtered predicate
+        var orders = await _unitOfWork.Repository<Order>().FindWithIncludesAsync(
+            o => (!fromDate.HasValue || o.CreatedAt >= fromDate.Value) && 
+                 (!toDate.HasValue || o.CreatedAt <= toDate.Value) &&
+                 (!status.HasValue || o.Status == status.Value),
+            o => o.Items
+        );
+
+        var orderDtos = new List<OrderDto>();
+        foreach(var order in orders.OrderByDescending(o => o.CreatedAt))
+        {
+             orderDtos.Add(await MapOrderToDto(order, cancellationToken));
+        }
+
+        return orderDtos;
+    }
+
+    public async Task<OrderDto?> GetOrderWithDetailsAsync(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        // MapOrderToDto fetches items inside. So standard GetById is enough if we use MapOrderToDto.
+        // But better to use GetByIdWithIncludesAsync for optimization?
+        // Current MapOrderToDto fetches items manually: await _unitOfWork.Repository<OrderItem>().FindAsync(...)
+        // So fetching with includes here won't help MapOrderToDto unless we refactor MapOrderToDto.
+        // Given current MapOrderToDto logic, let's just reuse GetOrderByIdAsync logic but ensuring it returns OrderDto.
+        return await GetOrderByIdAsync(orderId, cancellationToken);
     }
 
     private async Task<OrderDto> MapOrderToDto(Order order, CancellationToken cancellationToken)

@@ -12,10 +12,12 @@ namespace SmartTeam.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly IOrderService _orderService;
+    private readonly IPdfService _pdfService;
 
-    public OrdersController(IOrderService orderService)
+    public OrdersController(IOrderService orderService, IPdfService pdfService)
     {
         _orderService = orderService;
+        _pdfService = pdfService;
     }
 
     [HttpPost]
@@ -70,10 +72,30 @@ public class OrdersController : ControllerBase
 
     [HttpGet("admin/all")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<OrderListDto>>> GetAllOrders(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResultDto<OrderListDto>>> GetAllOrders(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
-        var orders = await _orderService.GetAllOrdersAsync(cancellationToken);
-        return Ok(orders);
+        var result = await _orderService.GetAllOrdersAsync(page, pageSize, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("search")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<PagedResultDto<OrderListDto>>> SearchOrders(
+        [FromQuery] string customerName, 
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(customerName))
+        {
+            return BadRequest(new { message = "Customer name is required" });
+        }
+        
+        var result = await _orderService.SearchOrdersByNameAsync(customerName, page, pageSize, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPut("{id}/status")]
@@ -89,5 +111,33 @@ public class OrdersController : ControllerBase
         {
             return NotFound(new { message = ex.Message });
         }
+    }
+
+    [HttpGet("{id}/pdf")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetOrderPdf(Guid id, CancellationToken cancellationToken)
+    {
+        var order = await _orderService.GetOrderWithDetailsAsync(id, cancellationToken);
+        if (order == null) return NotFound();
+
+        var pdfBytes = _pdfService.GenerateOrderReceipt(order);
+        return File(pdfBytes, "application/pdf", $"qaimə-{order.OrderNumber}.pdf");
+    }
+
+    [HttpGet("export/pdf")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ExportOrdersPdf(
+        [FromQuery] DateTime? fromDate, 
+        [FromQuery] DateTime? toDate, 
+        [FromQuery] OrderStatus? status, 
+        CancellationToken cancellationToken)
+    {
+        var orders = await _orderService.GetOrdersForExportAsync(fromDate, toDate, status, cancellationToken);
+        
+        if (!orders.Any())
+            return NotFound(new { message = "No orders found for the specified criteria." });
+
+        var pdfBytes = _pdfService.GenerateBulkOrderReceipts(orders, fromDate, toDate);
+        return File(pdfBytes, "application/pdf", $"sifarişlər-export-{DateTime.Now:yyyyMMdd}.pdf");
     }
 }

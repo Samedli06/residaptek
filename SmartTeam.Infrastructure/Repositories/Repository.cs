@@ -64,13 +64,25 @@ public class Repository<T> : IRepository<T> where T : class
     public virtual async Task<T?> FirstOrDefaultWithIncludesAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
     {
         IQueryable<T> query = _dbSet;
-
+        
         foreach (var include in includes)
         {
             query = query.Include(include);
         }
-
+        
         return await query.FirstOrDefaultAsync(predicate);
+    }
+
+    public virtual async Task<IEnumerable<T>> FindWithIncludesAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes)
+    {
+        IQueryable<T> query = _dbSet;
+        
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        
+        return await query.Where(predicate).ToListAsync();
     }
 
     public virtual async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
@@ -84,6 +96,35 @@ public class Repository<T> : IRepository<T> where T : class
             return await _dbSet.CountAsync(cancellationToken);
         
         return await _dbSet.CountAsync(predicate, cancellationToken);
+    }
+
+    public virtual async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+        int page, 
+        int pageSize, 
+        Expression<Func<T, bool>>? predicate = null, 
+        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<T> query = _dbSet;
+
+        if (predicate != null)
+        {
+            query = query.Where(predicate);
+        }
+
+        int totalCount = await query.CountAsync(cancellationToken);
+
+        if (orderBy != null)
+        {
+            query = orderBy(query);
+        }
+        
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
     }
 
     public virtual async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)

@@ -11,11 +11,19 @@ public interface IRepository<T> where T : class
     Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
     Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
     Task<T?> FirstOrDefaultWithIncludesAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes);
+    Task<IEnumerable<T>> FindWithIncludesAsync(Expression<Func<T, bool>> predicate, params Expression<Func<T, object>>[] includes);
     Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
     Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken cancellationToken = default);
     
     Task<T> AddAsync(T entity, CancellationToken cancellationToken = default);
     Task<IEnumerable<T>> AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+    
+    Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+        int page, 
+        int pageSize, 
+        Expression<Func<T, bool>>? predicate = null, 
+        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+        CancellationToken cancellationToken = default);
     
     void Update(T entity);
     void UpdateRange(IEnumerable<T> entities);

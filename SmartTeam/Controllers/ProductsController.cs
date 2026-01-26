@@ -1238,5 +1238,36 @@ public class ProductsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Get recently added products with pagination
+    /// </summary>
+    [HttpGet("recently-added")]
+    [ProducesResponseType(typeof(PagedResultDto<ProductListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PagedResultDto<ProductListDto>>> GetRecentlyAddedProducts(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userRole = GetCurrentUserRole();
+            var userId = GetCurrentUserId();
+            
+            var result = await _productService.GetRecentlyAddedProductsAsync(
+                page, 
+                pageSize, 
+                userRole, 
+                userId, 
+                cancellationToken);
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "An error occurred while retrieving recently added products.", message = ex.Message });
+        }
+    }
+
     #endregion
 }

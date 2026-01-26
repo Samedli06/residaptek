@@ -26,7 +26,8 @@ namespace SmartTeam
                 {
                     policy.WithOrigins(
                         "http://localhost:5173", 
-                        "https://localhost:5173"
+                        "https://localhost:5173",
+                        "https://e-depo.netlify.app"
                     )
                     .AllowAnyHeader()
                     .AllowAnyMethod()

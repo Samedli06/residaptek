@@ -3008,6 +3008,46 @@ public class ProductService : IProductService
         return CreatePagedResult(pagedProductsList, request.Page, request.PageSize, totalCountList);
     }
 
+    public async Task<PagedResultDto<ProductListDto>> GetRecentlyAddedProductsAsync(
+        int page = 1, 
+        int pageSize = 10, 
+        UserRole? userRole = null, 
+        Guid? userId = null, 
+        CancellationToken cancellationToken = default)
+    {
+        // Get all active products
+        var products = await _unitOfWork.Repository<Product>()
+            .FindAsync(p => p.IsActive, cancellationToken);
+
+        // Order by CreatedAt descending (most recent first)
+        var recentProducts = products.OrderByDescending(p => p.CreatedAt).ToList();
+
+        // Map to DTOs
+        var productDtos = _mapper.Map<IEnumerable<ProductListDto>>(recentProducts);
+
+        // Apply favorite status if user is logged in
+        if (userId.HasValue)
+        {
+            await ApplyFavoriteStatusToProductList(productDtos, userId.Value, cancellationToken);
+        }
+
+        // Apply filters and breadcrumbs
+        await ApplyFiltersToProductList(productDtos, cancellationToken);
+        await PopulateCategoryBreadcrumbs(productDtos, cancellationToken);
+
+        // Get total count
+        var totalCount = productDtos.Count();
+
+        // Apply pagination
+        var pagedProducts = productDtos
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        // Create paginated result
+        return CreatePagedResult(pagedProducts, page, pageSize, totalCount);
+    }
+
     #endregion
 
     #region Helper Methods for Pagination

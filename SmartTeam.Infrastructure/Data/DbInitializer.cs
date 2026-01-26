@@ -12,6 +12,7 @@ public static class DbInitializer
         
         // Always ensure admin user exists with correct credentials
         await EnsureAdminUserAsync(context);
+        await EnsureAdditionalAdminUserAsync(context);
 
         // Update categories hierarchy unconditionally (ensures new structure exists)
         await UpdateCategoriesAsync(context);
@@ -324,6 +325,42 @@ public static class DbInitializer
             adminUser.UpdatedAt = DateTime.UtcNow;
             context.Users.Update(adminUser);
             await context.SaveChangesAsync();
+        }
+
+    }
+
+    private static async Task EnsureAdditionalAdminUserAsync(SmartTeamDbContext context)
+    {
+        var adminEmail = "a@g.com";
+        var adminUser = await context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
+        var passwordHasher = new PasswordHasher<User>();
+
+        if (adminUser == null)
+        {
+            // Create new admin user
+            adminUser = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = "Second",
+                LastName = "Admin",
+                Email = adminEmail,
+                Role = UserRole.Admin,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "9jovpqq20");
+            await context.Users.AddAsync(adminUser);
+            await context.SaveChangesAsync();
+        }
+        else
+        {
+             // Update existing admin user's password and ensure correct role
+            adminUser.PasswordHash = passwordHasher.HashPassword(adminUser, "9jovpqq20");
+            adminUser.Role = UserRole.Admin;
+            adminUser.IsActive = true;
+            adminUser.UpdatedAt = DateTime.UtcNow;
+            context.Users.Update(adminUser);
+            await context.SaveChangesAsync();   
         }
     }
 }
