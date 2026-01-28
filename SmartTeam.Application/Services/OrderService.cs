@@ -194,22 +194,30 @@ public class OrderService : IOrderService
 
     public async Task<PagedResultDto<OrderListDto>> GetAllOrdersAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var (items, totalCount) = await _unitOfWork.Repository<Order>().GetPagedAsync(
-            page, 
-            pageSize, 
-            predicate: null,
-            orderBy: q => q.OrderByDescending(o => o.CreatedAt),
-            cancellationToken: cancellationToken);
+        var orders = await _unitOfWork.Repository<Order>()
+            .FindAsync(o => true, cancellationToken);
 
-        var orderDtos = items.Select(o => new OrderListDto
+        var ordersWithUsers = new List<(Order order, User? user)>();
+        foreach (var order in orders)
         {
-            Id = o.Id,
-            OrderNumber = o.OrderNumber,
-            CustomerName = o.CustomerName,
-            TotalAmount = o.TotalAmount,
-            Status = o.Status,
-            StatusText = o.Status.ToString(),
-            CreatedAt = o.CreatedAt,
+            var user = await _unitOfWork.Repository<User>().GetByIdAsync(order.UserId, cancellationToken);
+            ordersWithUsers.Add((order, user));
+        }
+
+        var orderedList = ordersWithUsers.OrderByDescending(x => x.order.CreatedAt).ToList();
+        var totalCount = orderedList.Count;
+        var pagedItems = orderedList.Skip((page - 1) * pageSize).Take(pageSize);
+
+        var orderDtos = pagedItems.Select(x => new OrderListDto
+        {
+            Id = x.order.Id,
+            OrderNumber = x.order.OrderNumber,
+            CustomerName = x.order.CustomerName,
+            PharmacyName = x.user?.PharmacyName ?? string.Empty,
+            TotalAmount = x.order.TotalAmount,
+            Status = x.order.Status,
+            StatusText = x.order.Status.ToString(),
+            CreatedAt = x.order.CreatedAt,
             ItemsCount = 0 
         }).ToList();
 
@@ -224,23 +232,31 @@ public class OrderService : IOrderService
 
     public async Task<PagedResultDto<OrderListDto>> SearchOrdersByNameAsync(string customerName, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var (items, totalCount) = await _unitOfWork.Repository<Order>().GetPagedAsync(
-            page, 
-            pageSize, 
-            predicate: o => o.CustomerName.Contains(customerName),
-            orderBy: q => q.OrderByDescending(o => o.CreatedAt),
-            cancellationToken: cancellationToken);
+        var orders = await _unitOfWork.Repository<Order>()
+            .FindAsync(o => o.CustomerName.Contains(customerName), cancellationToken);
 
-        var orderDtos = items.Select(o => new OrderListDto
+        var ordersWithUsers = new List<(Order order, User? user)>();
+        foreach (var order in orders)
         {
-            Id = o.Id,
-            OrderNumber = o.OrderNumber,
-            CustomerName = o.CustomerName,
-            TotalAmount = o.TotalAmount,
-            Status = o.Status,
-            StatusText = o.Status.ToString(),
-            CreatedAt = o.CreatedAt,
-            ItemsCount = 0 
+            var user = await _unitOfWork.Repository<User>().GetByIdAsync(order.UserId, cancellationToken);
+            ordersWithUsers.Add((order, user));
+        }
+
+        var orderedList = ordersWithUsers.OrderByDescending(x => x.order.CreatedAt).ToList();
+        var totalCount = orderedList.Count;
+        var pagedItems = orderedList.Skip((page - 1) * pageSize).Take(pageSize);
+
+        var orderDtos = pagedItems.Select(x => new OrderListDto
+        {
+            Id = x.order.Id,
+            OrderNumber = x.order.OrderNumber,
+            CustomerName = x.order.CustomerName,
+            PharmacyName = x.user?.PharmacyName ?? string.Empty,
+            TotalAmount = x.order.TotalAmount,
+            Status = x.order.Status,
+            StatusText = x.order.Status.ToString(),
+            CreatedAt = x.order.CreatedAt,
+            ItemsCount = 0
         }).ToList();
 
         return new PagedResultDto<OrderListDto>
@@ -355,6 +371,9 @@ public class OrderService : IOrderService
     {
         var items = await _unitOfWork.Repository<OrderItem>()
             .FindAsync(oi => oi.OrderId == order.Id, cancellationToken);
+
+        // Fetch user to get PharmacyName
+        var user = await _unitOfWork.Repository<User>().GetByIdAsync(order.UserId, cancellationToken);
             
         var itemDtos = new List<OrderItemDto>();
         foreach(var item in items)
@@ -399,6 +418,7 @@ public class OrderService : IOrderService
             UserId = order.UserId,
             CustomerName = order.CustomerName,
             CustomerPhone = order.CustomerPhone,
+            PharmacyName = user?.PharmacyName ?? string.Empty,
             DeliveryAddress = order.DeliveryAddress,
             Latitude = order.Latitude,
             Longitude = order.Longitude,

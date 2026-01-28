@@ -49,7 +49,7 @@ public class PdfService : IPdfService
         {
             row.RelativeItem().Column(column =>
             {
-                column.Item().Text("E-DEPO").FontSize(24).ExtraBold().FontColor(Colors.Blue.Medium);
+                column.Item().Text("E-DEPO.az").FontSize(14).ExtraBold().FontColor(Colors.Blue.Medium);
                 column.Item().Text("Bakı Masazır, Yeni Bakı 16").FontSize(10);
                 column.Item().Text("Tel: +994 993 99 96 76").FontSize(10);
                 column.Item().Text("Email: office@residaptek.az").FontSize(10);
@@ -99,23 +99,7 @@ public class PdfService : IPdfService
                     row.RelativeItem().AlignRight().Text($"Cəm Məbləğ: {order.SubTotal:N2} ₼").FontSize(10);
                 });
 
-                // Promo Discount
-                if (order.PromoCodeDiscount.HasValue && order.PromoCodeDiscount > 0)
-                {
-                    col.Item().Row(row =>
-                    {
-                        row.RelativeItem().AlignRight().Text($"Promo Kod Endirimi: -{order.PromoCodeDiscount:N2} ₼").FontSize(10).FontColor(Colors.Red.Medium);
-                    });
-                }
 
-                // Wallet Discount
-                if (order.WalletDiscount.HasValue && order.WalletDiscount > 0)
-                {
-                    col.Item().Row(row =>
-                    {
-                        row.RelativeItem().AlignRight().Text($"Balansdan Ödəniş: -{order.WalletDiscount:N2} ₼").FontSize(10).FontColor(Colors.Red.Medium);
-                    });
-                }
 
                 // Total
                 col.Item().PaddingTop(5).Row(row =>
@@ -124,13 +108,7 @@ public class PdfService : IPdfService
                 });
             });
             
-            if (order.BonusAmount.HasValue && order.BonusAmount > 0)
-            {
-                column.Item().PaddingTop(5).Row(row =>
-                {
-                    row.RelativeItem().AlignRight().Text($"Qazanılan Bonus: {order.BonusAmount:N2} ₼").FontSize(10).FontColor(Colors.Green.Medium);
-                });
-            }
+
         });
     }
 
@@ -186,9 +164,19 @@ public class PdfService : IPdfService
     {
         container.Row(row =>
         {
-            row.RelativeItem().Column(column =>
+            row.RelativeItem(2).Row(sigRow =>
             {
-                column.Item().Text("İmza: _________________").FontSize(10);
+                sigRow.RelativeItem().Column(col => 
+                {
+                    col.Item().Text("Təhvil verən (Satıcı):").FontSize(10);
+                    col.Item().PaddingTop(25).Text("_____________________");
+                });
+                        
+                sigRow.RelativeItem().Column(col => 
+                {
+                    col.Item().Text("Təhvil alan (Sifarişçi):").FontSize(10);
+                    col.Item().PaddingTop(25).Text("_____________________");
+                });
             });
             
             row.RelativeItem().AlignRight().Text(x =>

@@ -1,4 +1,5 @@
  using SmartTeam.Domain.Entities;
+using System.ComponentModel.DataAnnotations;
 
 namespace SmartTeam.Application.DTOs;
 
@@ -6,6 +7,8 @@ public class RegisterDto
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    [Required(ErrorMessage = "Pharmacy name is required")]
+    public string PharmacyName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public string Password { get; set; } = string.Empty;

@@ -60,18 +60,19 @@ public class AuthService : IAuthService
         }
 
         // Create new user with NormalUser role (default)
-        var user = new User
-        {
-            Id = Guid.NewGuid(),
-            FirstName = registerDto.FirstName,
-            LastName = registerDto.LastName,
-            Email = registerDto.Email,
-            PhoneNumber = registerDto.PhoneNumber,
-            PasswordHash = _passwordService.HashPassword(registerDto.Password),
-            Role = UserRole.NormalUser, // Default role for new registrations
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
+    var user = new User
+    {
+        Id = Guid.NewGuid(),
+        FirstName = registerDto.FirstName,
+        LastName = registerDto.LastName,
+        PharmacyName = registerDto.PharmacyName,
+        Email = registerDto.Email,
+        PhoneNumber = registerDto.PhoneNumber,
+        PasswordHash = _passwordService.HashPassword(registerDto.Password),
+        Role = UserRole.NormalUser, // Default role for new registrations
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow
+    };
 
         await _unitOfWork.Repository<User>().AddAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
