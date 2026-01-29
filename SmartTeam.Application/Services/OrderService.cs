@@ -92,7 +92,7 @@ public class OrderService : IOrderService
                      Id = Guid.NewGuid(),
                      PromoCodeId = promo.Id,
                      UserId = userId,
-                     UsedAt = DateTime.UtcNow
+                     UsedAt = TimeHelper.Now
                      // OrderId linkage would be good here if PromoCodeUsage has OrderId
                  };
                  await _unitOfWork.Repository<PromoCodeUsage>().AddAsync(promoUsage, cancellationToken);
@@ -143,7 +143,7 @@ public class OrderService : IOrderService
             WalletDiscount = walletDiscount > 0 ? walletDiscount : null,
             TotalAmount = totalAmount, // After all discounts
             Status = OrderStatus.Pending,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = TimeHelper.Now,
             BonusAwarded = false,
             BonusAmount = null // Calculated but not awarded yet
         };
@@ -335,7 +335,7 @@ public class OrderService : IOrderService
     private string GenerateOrderNumber()
     {
         // Simple generation: ORD-YYYYMMDD-XXXX
-        return $"ORD-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
+        return $"ORD-{TimeHelper.Now:yyyyMMdd}-{new Random().Next(1000, 9999)}";
     }
 
     public async Task<IEnumerable<OrderDto>> GetOrdersForExportAsync(DateTime? fromDate, DateTime? toDate, OrderStatus? status, CancellationToken cancellationToken = default)

@@ -52,7 +52,7 @@ public class PdfService : IPdfService
                 column.Item().Text("E-DEPO.az").FontSize(14).ExtraBold().FontColor(Colors.Blue.Medium);
                 column.Item().Text("Bakı Masazır, Yeni Bakı 16").FontSize(10);
                 column.Item().Text("Tel: +994 993 99 96 76").FontSize(10);
-                column.Item().Text("Email: office@residaptek.az").FontSize(10);
+                column.Item().Text("Email: Info@e-depo.az").FontSize(10);
             });
 
             row.ConstantItem(150).Column(column =>

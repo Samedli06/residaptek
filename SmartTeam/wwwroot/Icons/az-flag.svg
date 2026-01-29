@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 15" width="20" height="15">
+  <!-- Blue stripe -->
+  <rect width="20" height="5" fill="#0091DA"/>
+  <!-- Red stripe -->
+  <rect y="5" width="20" height="5" fill="#ED2939"/>
+  <!-- Green stripe -->
+  <rect y="10" width="20" height="5" fill="#00B04F"/>
+  <!-- White crescent -->
+  <circle cx="8" cy="7.5" r="2.5" fill="white"/>
+  <circle cx="8.5" cy="7.5" r="2" fill="#ED2939"/>
+  <!-- White star -->
+  <g fill="white" transform="translate(10.5, 7.5)">
+    <polygon points="0,-1.2 0.35,-0.37 1.2,-0.37 0.58,0.12 0.93,0.95 0,0.46 -0.93,0.95 -0.58,0.12 -1.2,-0.37 -0.35,-0.37"/>
+  </g>
+</svg>

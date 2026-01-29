@@ -1,0 +1,26 @@
+# robots.txt for E-depo Pharmacy
+
+User-agent: *
+Allow: /
+
+# Disallow admin and private pages
+Disallow: /admin/
+Disallow: /login
+Disallow: /register
+Disallow: /profile
+Disallow: /cart
+Disallow: /favorites
+
+# Allow important pages
+Allow: /
+Allow: /products
+Allow: /about
+Allow: /contact
+Allow: /brands
+Allow: /categories/
+
+# Sitemap location
+Sitemap: https://edepoaptek-001-site1.ktempurl.com/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1

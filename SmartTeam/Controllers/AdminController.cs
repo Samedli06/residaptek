@@ -1743,33 +1743,7 @@ public class AdminController : ControllerBase
 
     #endregion
 
-    #region Category Management
 
-    /// <summary>
-    /// Add Azerbaijani categories to database (Admin only)
-    /// </summary>
-    [HttpPost("add-azerbaijani-categories")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> AddAzerbaijaniCategories(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _productService.AddAzerbaijaniCategoriesAsync(cancellationToken);
-            
-            return Ok(new { 
-                message = "Azerbaijani categories added successfully!",
-                timestamp = DateTime.UtcNow
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = "Failed to add categories", message = ex.Message });
-        }
-    }
-
-    #endregion
 
     #region Brand Management
 
@@ -1976,32 +1950,7 @@ public class AdminController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Add predefined brands to database (Admin only)
-    /// </summary>
-    [HttpPost("add-brands")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> AddBrands(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await _brandService.AddPredefinedBrandsAsync(cancellationToken);
-            
-            return Ok(new { 
-                message = "Brands processed successfully!",
-                addedCount = result.AddedCount,
-                skippedCount = result.SkippedCount,
-                totalRequested = result.TotalRequested,
-                timestamp = DateTime.UtcNow
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = "Failed to add brands", message = ex.Message });
-        }
-    }
+
 
     #endregion
 }

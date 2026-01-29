@@ -27,7 +27,11 @@ namespace SmartTeam
                     policy.WithOrigins(
                         "http://localhost:5173", 
                         "https://localhost:5173",
-                        "https://e-depo.netlify.app"
+                        "http://localhost:7222", 
+                        "https://localhost:7222",
+                        "https://e-depo.netlify.app",
+                        "https://e-depo.az",
+                        "https://www.e-depo.az"
                     )
                     .AllowAnyHeader()
                     .AllowAnyMethod()
@@ -163,6 +167,7 @@ namespace SmartTeam
             // Disable HTTPS redirection to avoid mixed content issues
             // app.UseHttpsRedirection();
             app.UseStaticFiles();
+            app.UseDefaultFiles();
 
             app.UseAuthentication();
             app.UseAuthorization();
@@ -174,6 +179,7 @@ namespace SmartTeam
 
             app.MapControllers();
 
+            app.MapFallbackToFile("index.html");
             app.Run();
         }
     }
