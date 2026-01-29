@@ -344,6 +344,7 @@ public class ProductService : IProductService
             IsActive = true,
             Price = createProductDto.Price,
             DiscountedPrice = createProductDto.DiscountedPrice,
+            MinimumOrderQuantity = createProductDto.MinimumOrderQuantity,
             CreatedAt = TimeHelper.Now
         };
 
@@ -2051,6 +2052,54 @@ public class ProductService : IProductService
         try
         {
             // Delete all data in the correct order to respect foreign key constraints
+            
+            // 1. Order related data (OrderItems depend on Products and Orders)
+            var orderItems = await _unitOfWork.Repository<OrderItem>().FindAsync(x => true, cancellationToken);
+            if (orderItems.Any())
+            {
+                _unitOfWork.Repository<OrderItem>().RemoveRange(orderItems);
+            }
+
+            var orders = await _unitOfWork.Repository<Order>().FindAsync(x => true, cancellationToken);
+            if (orders.Any())
+            {
+                _unitOfWork.Repository<Order>().RemoveRange(orders);
+            }
+
+            // 2. Wallet related data
+            var walletTransactions = await _unitOfWork.Repository<WalletTransaction>().FindAsync(x => true, cancellationToken);
+            if (walletTransactions.Any())
+            {
+                _unitOfWork.Repository<WalletTransaction>().RemoveRange(walletTransactions);
+            }
+
+            var userWallets = await _unitOfWork.Repository<UserWallet>().FindAsync(x => true, cancellationToken);
+            if (userWallets.Any())
+            {
+                _unitOfWork.Repository<UserWallet>().RemoveRange(userWallets);
+            }
+
+            // 3. PromoCode related data
+            var promoCodeUsages = await _unitOfWork.Repository<PromoCodeUsage>().FindAsync(x => true, cancellationToken);
+            if (promoCodeUsages.Any())
+            {
+                _unitOfWork.Repository<PromoCodeUsage>().RemoveRange(promoCodeUsages);
+            }
+
+            var promoCodes = await _unitOfWork.Repository<PromoCode>().FindAsync(x => true, cancellationToken);
+            if (promoCodes.Any())
+            {
+                _unitOfWork.Repository<PromoCode>().RemoveRange(promoCodes);
+            }
+
+            // 4. Auth tokens
+            var passwordResetTokens = await _unitOfWork.Repository<PasswordResetToken>().FindAsync(x => true, cancellationToken);
+            if (passwordResetTokens.Any())
+            {
+                _unitOfWork.Repository<PasswordResetToken>().RemoveRange(passwordResetTokens);
+            }
+
+            // 5. Product related data
             var productAttributeValues = await _unitOfWork.Repository<ProductAttributeValue>().FindAsync(x => true, cancellationToken);
             if (productAttributeValues.Any())
             {

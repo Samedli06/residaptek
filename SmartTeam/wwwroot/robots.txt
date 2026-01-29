@@ -20,7 +20,7 @@ Allow: /brands
 Allow: /categories/
 
 # Sitemap location
-Sitemap: https://edepoaptek-001-site1.ktempurl.com/sitemap.xml
+Sitemap: https://e-depo.az/sitemap.xml
 
 # Crawl-delay
 Crawl-delay: 1

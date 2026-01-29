@@ -4,43 +4,43 @@
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
   <url>
-    <loc>https://edepoaptek-001-site1.ktempurl.com/</loc>
+    <loc>${API_BASE_URL}/</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://edepoaptek-001-site1.ktempurl.com/about</loc>
+    <loc>${API_BASE_URL}/about</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://edepoaptek-001-site1.ktempurl.com/contact</loc>
+    <loc>${API_BASE_URL}/contact</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://edepoaptek-001-site1.ktempurl.com/brands</loc>
+    <loc>${API_BASE_URL}/brands</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://edepoaptek-001-site1.ktempurl.com/products</loc>
+    <loc>${API_BASE_URL}/products</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://edepoaptek-001-site1.ktempurl.com/products/hot-deals</loc>
+    <loc>${API_BASE_URL}/products/hot-deals</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://edepoaptek-001-site1.ktempurl.com/products/recommended</loc>
+    <loc>${API_BASE_URL}/products/recommended</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
