@@ -17,4 +17,5 @@ public interface ICategoryService
     Task<IEnumerable<CategoryDto>> GetSubCategoriesAsync(Guid parentId, CancellationToken cancellationToken = default);
     Task<CategoryDto> UploadCategoryImageAsync(Guid categoryId, IFormFile imageFile, CancellationToken cancellationToken = default);
     Task<bool> DeleteCategoryImageAsync(Guid categoryId, string imageUrl, CancellationToken cancellationToken = default);
+    Task<IEnumerable<CategorySlugDto>> GetAllSlugsAsync(CancellationToken cancellationToken = default);
 }

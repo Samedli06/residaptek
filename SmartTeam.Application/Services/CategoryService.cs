@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using SmartTeam.Application.DTOs;
 using SmartTeam.Domain.Entities;
 using SmartTeam.Domain.Interfaces;
+using SmartTeam.Application.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace SmartTeam.Application.Services;
 
@@ -193,7 +195,29 @@ public class CategoryService : ICategoryService
             }
         }
 
+        // Handle Slug Logic
+        string newSlug = category.Slug;
+        if (!string.IsNullOrWhiteSpace(updateCategoryDto.Slug))
+        {
+            // Manual slug update
+            if (updateCategoryDto.Slug != category.Slug)
+            {
+                newSlug = await EnsureUniqueSlugAsync(GenerateSlug(updateCategoryDto.Slug), cancellationToken, id);
+            }
+        }
+        else if (category.Name != updateCategoryDto.Name)
+        {
+            // Name changed, auto-generate new slug if no manual slug provided
+            newSlug = await EnsureUniqueSlugAsync(GenerateSlug(updateCategoryDto.Name), cancellationToken, id);
+        }
+
         _mapper.Map(updateCategoryDto, category);
+        
+        // Restore/Set the calculated slug (Mapper might have overwritten it with null if DTO.Slug was null)
+        category.Slug = newSlug;
+        
+        category.UpdatedAt = TimeHelper.Now;
+        
         _unitOfWork.Repository<Category>().Update(category);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -224,24 +248,35 @@ public class CategoryService : ICategoryService
             }
         }
 
+        // Handle Slug Logic
+        string newSlug = category.Slug;
+        if (!string.IsNullOrWhiteSpace(updateCategoryDto.Slug))
+        {
+            // Manual slug update
+            if (updateCategoryDto.Slug != category.Slug)
+            {
+                newSlug = await EnsureUniqueSlugAsync(GenerateSlug(updateCategoryDto.Slug), cancellationToken, id);
+            }
+        }
+        else if (category.Name != updateCategoryDto.Name)
+        {
+            // Name changed, auto-generate new slug if no manual slug provided
+            newSlug = await EnsureUniqueSlugAsync(GenerateSlug(updateCategoryDto.Name), cancellationToken, id);
+        }
+
         // Update category properties
         category.Name = updateCategoryDto.Name;
+        category.Slug = newSlug; // Set explicit slug
         category.Description = updateCategoryDto.Description;
         category.IsActive = updateCategoryDto.IsActive;
         category.SortOrder = updateCategoryDto.SortOrder;
         category.ParentCategoryId = updateCategoryDto.ParentCategoryId;
-        category.UpdatedAt = DateTime.UtcNow;
+        category.UpdatedAt = TimeHelper.Now;
 
         // Update image if provided
         if (imageFile != null && imageFile.Length > 0)
         {
             // IMPORTANT: Do not delete old images to preserve them after publish
-            // Delete old image if exists
-            // if (!string.IsNullOrEmpty(category.ImageUrl))
-            // {
-            //     await _fileUploadService.DeleteFileAsync(category.ImageUrl);
-            // }
-
             // Upload new image
             var imageUrl = await _fileUploadService.UploadFileAsync(imageFile, "categories");
             category.ImageUrl = imageUrl;
@@ -252,6 +287,25 @@ public class CategoryService : ICategoryService
 
         return _mapper.Map<CategoryDto>(category);
     }
+
+    // ... (rest of methods)
+
+    private async Task<string> EnsureUniqueSlugAsync(string slug, CancellationToken cancellationToken, Guid? excludeId = null)
+    {
+        var originalSlug = slug;
+        var counter = 1;
+        
+        // Check uniqueness, optionally excluding the entity we are updating
+        while (await _unitOfWork.Repository<Category>()
+            .AnyAsync(c => c.Slug == slug && (excludeId == null || c.Id != excludeId), cancellationToken))
+        {
+            slug = $"{originalSlug}-{counter}";
+            counter++;
+        }
+        
+        return slug;
+    }
+
 
     public async Task<bool> DeleteCategoryAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -392,6 +446,31 @@ public class CategoryService : ICategoryService
             .Replace(".", "")
             .Replace(",", "")
             .Replace("!", "")
-            .Replace("?", "");
+            .Replace("?", "")
+            .Replace("ə", "e")
+            .Replace("ı", "i")
+            .Replace("ö", "o")
+            .Replace("ü", "u")
+            .Replace("ş", "s")
+            .Replace("ç", "c")
+            .Replace("ğ", "g")
+            .Replace("#", "")
+            .Replace("/", "")
+            .Replace("\\", "")
+            .Replace("%", ""); // Remove potentially problematic URL characters
+    }
+
+    public async Task<IEnumerable<CategorySlugDto>> GetAllSlugsAsync(CancellationToken cancellationToken = default)
+    {
+        var categories = await _unitOfWork.Repository<Category>().GetAllAsync(cancellationToken);
+        
+        return categories
+            .Where(c => c.IsActive)
+            .Select(c => new CategorySlugDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Slug = c.Slug
+            });
     }
 }

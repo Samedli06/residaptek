@@ -35,6 +35,7 @@ public class CreateCategoryWithImageDto
 public class UpdateCategoryDto
 {
     public string Name { get; set; } = string.Empty;
+    public string? Slug { get; set; } // Added for Manual Slug Edit
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; }
@@ -45,6 +46,7 @@ public class UpdateCategoryDto
 public class UpdateCategoryWithImageDto
 {
     public string Name { get; set; } = string.Empty;
+    public string? Slug { get; set; } // Added for Manual Slug Edit
     public string? Description { get; set; }
     public bool IsActive { get; set; }
     public int SortOrder { get; set; }

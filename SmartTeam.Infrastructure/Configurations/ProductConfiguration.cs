@@ -59,6 +59,12 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
 
 
+        builder.Property(p => p.Price)
+            .HasPrecision(18, 2);
+
+        builder.Property(p => p.DiscountedPrice)
+            .HasPrecision(18, 2);
+
         builder.HasMany(p => p.Images)
             .WithOne(pi => pi.Product)
             .HasForeignKey(pi => pi.ProductId)

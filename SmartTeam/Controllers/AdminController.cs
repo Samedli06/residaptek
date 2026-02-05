@@ -23,8 +23,9 @@ public class AdminController : ControllerBase
     private readonly IProductPdfService _productPdfService;
     private readonly IBrandService _brandService;
     private readonly IEmailService _emailService;
+    private readonly IWalletService _walletService;
 
-    public AdminController(IUserService userService, IAuthService authService, IProductService productService, IFilterService filterService, IBannerService bannerService, IDownloadableFileService downloadableFileService, IProductPdfService productPdfService, IBrandService brandService, IEmailService emailService)
+    public AdminController(IUserService userService, IAuthService authService, IProductService productService, IFilterService filterService, IBannerService bannerService, IDownloadableFileService downloadableFileService, IProductPdfService productPdfService, IBrandService brandService, IEmailService emailService, IWalletService walletService)
     {
         _userService = userService;
         _authService = authService;
@@ -35,6 +36,7 @@ public class AdminController : ControllerBase
         _productPdfService = productPdfService;
         _brandService = brandService;
         _emailService = emailService;
+        _walletService = walletService;
     }
 
     /// <summary>
@@ -289,6 +291,19 @@ public class AdminController : ControllerBase
             });
 
         return Ok(roles);
+    }
+
+    /// <summary>
+    /// Get all users' bonus balances and statistics (Admin only)
+    /// </summary>
+    [HttpGet("users/bonuses")]
+    [ProducesResponseType(typeof(IEnumerable<UserBonusDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<UserBonusDto>>> GetUserBonuses(CancellationToken cancellationToken)
+    {
+        var bonuses = await _walletService.GetAllUserBonusesAsync(cancellationToken);
+        return Ok(bonuses);
     }
 
     /// <summary>

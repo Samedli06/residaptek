@@ -100,6 +100,17 @@ public class CategoriesController : ControllerBase
     }
 
     /// <summary>
+    /// Get all category slugs
+    /// </summary>
+    [HttpGet("slugs")]
+    [ProducesResponseType(typeof(IEnumerable<CategorySlugDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<CategorySlugDto>>> GetSlugs(CancellationToken cancellationToken)
+    {
+        var slugs = await _categoryService.GetAllSlugsAsync(cancellationToken);
+        return Ok(slugs);
+    }
+
+    /// <summary>
     /// Get subcategories of a category
     /// </summary>
     [HttpGet("{id:guid}/subcategories")]

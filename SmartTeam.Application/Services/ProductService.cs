@@ -1614,16 +1614,16 @@ public class ProductService : IProductService
             System.Console.WriteLine($"DEBUG: Total products after category filter: {products.Count()}");
         }
 
-        var hasValidMinPrice = criteria.MinPrice.HasValue && criteria.MinPrice.Value > 0;
-        var hasValidMaxPrice = criteria.MaxPrice.HasValue && criteria.MaxPrice.Value > 0;
+        var hasValidMinPrice = criteria.MinPrice.HasValue && criteria.MinPrice.Value >= 0;
+        var hasValidMaxPrice = criteria.MaxPrice.HasValue && criteria.MaxPrice.Value >= 0;
         
         if (hasValidMinPrice || hasValidMaxPrice)
         {
-            System.Console.WriteLine($"DEBUG: Applying price filter - Min: {criteria.MinPrice}, Max: {criteria.MaxPrice}");
+            // Logic: Use DiscountedPrice ONLY if it has a value AND is greater than 0. Otherwise use regular Price.
+            // Note: EF Core translates this to SQL.
             products = products.Where(p => 
-                (!hasValidMinPrice || (p.DiscountedPrice ?? p.Price) >= criteria.MinPrice.Value) &&
-                (!hasValidMaxPrice || (p.DiscountedPrice ?? p.Price) <= criteria.MaxPrice.Value));
-            System.Console.WriteLine($"DEBUG: Products after price filter: {products.Count()}");
+                (!hasValidMinPrice || (p.DiscountedPrice != null && p.DiscountedPrice > 0 ? p.DiscountedPrice : p.Price) >= criteria.MinPrice.Value) &&
+                (!hasValidMaxPrice || (p.DiscountedPrice != null && p.DiscountedPrice > 0 ? p.DiscountedPrice : p.Price) <= criteria.MaxPrice.Value));
         }
 
         // Apply custom filters

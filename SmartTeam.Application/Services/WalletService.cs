@@ -193,4 +193,60 @@ public class WalletService : IWalletService
             CreatedAt = t.CreatedAt
         }).ToList();
     }
+
+    public async Task<IEnumerable<UserBonusDto>> GetAllUserBonusesAsync(CancellationToken cancellationToken = default)
+    {
+        // Get all users
+        var users = await _unitOfWork.Repository<User>().GetAllAsync(cancellationToken);
+        
+        var userBonusList = new List<UserBonusDto>();
+        
+        foreach (var user in users)
+        {
+            // Get wallet for this user
+            var wallet = await _unitOfWork.Repository<UserWallet>()
+                .FirstOrDefaultAsync(w => w.UserId == user.Id, cancellationToken);
+            
+            decimal bonusBalance = 0;
+            decimal totalBonusEarned = 0;
+            decimal totalBonusUsed = 0;
+            DateTime? lastBonusEarned = null;
+            
+            if (wallet != null)
+            {
+                bonusBalance = wallet.Balance;
+                
+                // Get all transactions for this wallet
+                var transactions = await _unitOfWork.Repository<WalletTransaction>()
+                    .FindAsync(t => t.WalletId == wallet.Id, cancellationToken);
+                
+                // Calculate totals
+                var creditTransactions = transactions.Where(t => t.Type == TransactionType.Credit).ToList();
+                var debitTransactions = transactions.Where(t => t.Type == TransactionType.Debit).ToList();
+                
+                totalBonusEarned = creditTransactions.Sum(t => t.Amount);
+                totalBonusUsed = debitTransactions.Sum(t => t.Amount);
+                
+                // Get last bonus earned date
+                lastBonusEarned = creditTransactions
+                    .OrderByDescending(t => t.CreatedAt)
+                    .FirstOrDefault()?.CreatedAt;
+            }
+            
+            userBonusList.Add(new UserBonusDto
+            {
+                UserId = user.Id,
+                FullName = $"{user.FirstName} {user.LastName}".Trim(),
+                Email = user.Email,
+                PharmacyName = user.PharmacyName,
+                BonusBalance = bonusBalance,
+                LastBonusEarned = lastBonusEarned,
+                TotalBonusEarned = totalBonusEarned,
+                TotalBonusUsed = totalBonusUsed
+            });
+        }
+        
+        // Sort by bonus balance descending
+        return userBonusList.OrderByDescending(u => u.BonusBalance).ToList();
+    }
 }
