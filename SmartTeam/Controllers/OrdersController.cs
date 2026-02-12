@@ -140,4 +140,25 @@ public class OrdersController : ControllerBase
         var pdfBytes = _pdfService.GenerateBulkOrderReceipts(orders, fromDate, toDate);
         return File(pdfBytes, "application/pdf", $"sifarişlər-export-{DateTime.Now:yyyyMMdd}.pdf");
     }
+
+    /// <summary>
+    /// Delete an order by ID (Admin only)
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> DeleteOrder(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _orderService.DeleteOrderAsync(id, cancellationToken);
+        
+        if (!result)
+        {
+            return NotFound(new { message = "Order not found." });
+        }
+
+        return Ok(new { message = "Order deleted successfully." });
+    }
 }

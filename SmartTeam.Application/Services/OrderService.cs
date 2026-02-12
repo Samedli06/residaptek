@@ -54,9 +54,16 @@ public class OrderService : IOrderService
         foreach (var cartItem in cartItems)
         {
             var product = await _unitOfWork.Repository<Product>().GetByIdAsync(cartItem.ProductId, cancellationToken);
-            if (product == null) continue; // Skip if product deleted? Or throw?
+            if (product == null) 
+            {
+                throw new InvalidOperationException($"Product with ID {cartItem.ProductId} not found.");
+            }
 
-            // Stock check logic here if strict
+            // Validate stock availability
+            if (product.StockQuantity < cartItem.Quantity)
+            {
+                throw new InvalidOperationException($"Insufficient stock for product '{product.Name}'. Available: {product.StockQuantity}, Requested: {cartItem.Quantity}");
+            }
             
             // Create Order Item snapshot
             var orderItem = new OrderItem
@@ -150,11 +157,19 @@ public class OrderService : IOrderService
 
         await _unitOfWork.Repository<Order>().AddAsync(order, cancellationToken);
 
-        // 5. Save Order Items
+        // 5. Save Order Items and Decrease Stock
         foreach (var item in orderItems)
         {
             item.OrderId = order.Id;
             await _unitOfWork.Repository<OrderItem>().AddAsync(item, cancellationToken);
+            
+            // Decrease product stock
+            var product = await _unitOfWork.Repository<Product>().GetByIdAsync(item.ProductId, cancellationToken);
+            if (product != null)
+            {
+                product.StockQuantity -= item.Quantity;
+                _unitOfWork.Repository<Product>().Update(product);
+            }
         }
 
         // 6. Clear Cart
@@ -274,14 +289,54 @@ public class OrderService : IOrderService
         if (order == null) throw new ArgumentException("Order not found");
 
         var oldStatus = order.Status;
-        order.Status = updateDto.Status;
+        var newStatus = updateDto.Status;
+        order.Status = newStatus;
         order.UpdatedAt = TimeHelper.Now;
 
-        if (updateDto.Status == OrderStatus.Confirmed && oldStatus != OrderStatus.Confirmed)
+        // Handle stock changes based on status transitions
+        var orderItems = await _unitOfWork.Repository<OrderItem>()
+            .FindAsync(oi => oi.OrderId == orderId, cancellationToken);
+
+        // If moving FROM Cancelled TO any active status (Pending, Confirmed, Delivered)
+        // we need to decrease stock again
+        if (oldStatus == OrderStatus.Cancelled && newStatus != OrderStatus.Cancelled)
+        {
+            foreach (var orderItem in orderItems)
+            {
+                var product = await _unitOfWork.Repository<Product>().GetByIdAsync(orderItem.ProductId, cancellationToken);
+                if (product != null)
+                {
+                    // Validate stock availability
+                    if (product.StockQuantity < orderItem.Quantity)
+                    {
+                        throw new InvalidOperationException($"Insufficient stock for product '{product.Name}'. Available: {product.StockQuantity}, Requested: {orderItem.Quantity}");
+                    }
+                    
+                    product.StockQuantity -= orderItem.Quantity;
+                    _unitOfWork.Repository<Product>().Update(product);
+                }
+            }
+        }
+        // If moving FROM any active status TO Cancelled, restore stock
+        else if (oldStatus != OrderStatus.Cancelled && newStatus == OrderStatus.Cancelled)
+        {
+            foreach (var orderItem in orderItems)
+            {
+                var product = await _unitOfWork.Repository<Product>().GetByIdAsync(orderItem.ProductId, cancellationToken);
+                if (product != null)
+                {
+                    product.StockQuantity += orderItem.Quantity;
+                    _unitOfWork.Repository<Product>().Update(product);
+                }
+            }
+        }
+
+        // Update status-specific timestamps
+        if (newStatus == OrderStatus.Confirmed && oldStatus != OrderStatus.Confirmed)
         {
             order.ConfirmedAt = TimeHelper.Now;
         }
-        else if (updateDto.Status == OrderStatus.Delivered && oldStatus != OrderStatus.Delivered)
+        else if (newStatus == OrderStatus.Delivered && oldStatus != OrderStatus.Delivered)
         {
             order.DeliveredAt = TimeHelper.Now;
             
@@ -291,7 +346,7 @@ public class OrderService : IOrderService
                 await AwardBonusAsync(order, cancellationToken);
             }
         }
-        else if (updateDto.Status == OrderStatus.Cancelled)
+        else if (newStatus == OrderStatus.Cancelled)
         {
             order.CancelledAt = TimeHelper.Now;
         }
@@ -436,5 +491,28 @@ public class OrderService : IOrderService
             BonusAwarded = order.BonusAwarded,
             BonusAmount = order.BonusAmount
         };
+    }
+
+    public async Task<bool> DeleteOrderAsync(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        var order = await _unitOfWork.Repository<Order>().GetByIdAsync(orderId, cancellationToken);
+        
+        if (order == null)
+        {
+            return false;
+        }
+
+        // Delete associated order items first (due to foreign key constraints)
+        var orderItems = await _unitOfWork.Repository<OrderItem>()
+            .FindAsync(oi => oi.OrderId == orderId, cancellationToken);
+        
+        _unitOfWork.Repository<OrderItem>().RemoveRange(orderItems);
+        
+        // Delete the order
+        _unitOfWork.Repository<Order>().Remove(order);
+        
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
+        return true;
     }
 }

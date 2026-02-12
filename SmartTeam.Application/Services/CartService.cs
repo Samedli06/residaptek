@@ -70,8 +70,10 @@ public class CartService : ICartService
             throw new InvalidOperationException($"Minimum order quantity for this product is {product.MinimumOrderQuantity}.");
         }
 
-        // Use discounted price if available, otherwise regular price
-        decimal unitPrice = product.DiscountedPrice ?? product.Price;
+        // Use discounted price if available AND greater than 0, otherwise regular price
+        decimal unitPrice = (product.DiscountedPrice.HasValue && product.DiscountedPrice.Value > 0) 
+            ? product.DiscountedPrice.Value 
+            : product.Price;
 
         if (unitPrice <= 0)
         {
@@ -286,7 +288,10 @@ public class CartService : ICartService
             throw new InvalidOperationException($"Minimum order quantity for this product is {product.MinimumOrderQuantity}.");
         }
 
-        decimal unitPrice = product.DiscountedPrice ?? product.Price;
+        // Use discounted price if available AND greater than 0, otherwise regular price
+        decimal unitPrice = (product.DiscountedPrice.HasValue && product.DiscountedPrice.Value > 0) 
+            ? product.DiscountedPrice.Value 
+            : product.Price;
         decimal totalPrice = unitPrice * quickOrderDto.Quantity;
 
         // Create a single cart item for this product

@@ -13,4 +13,5 @@ public interface IOrderService
     Task<IEnumerable<OrderDto>> GetOrdersForExportAsync(DateTime? fromDate, DateTime? toDate, OrderStatus? status, CancellationToken cancellationToken = default);
     Task<OrderDto?> GetOrderWithDetailsAsync(Guid orderId, CancellationToken cancellationToken = default);
     Task<OrderDto> UpdateOrderStatusAsync(Guid orderId, UpdateOrderStatusDto updateDto, CancellationToken cancellationToken = default);
+    Task<bool> DeleteOrderAsync(Guid orderId, CancellationToken cancellationToken = default);
 }
