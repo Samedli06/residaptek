@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SmartTeam.Application.DTOs;
 using SmartTeam.Application.Services;
 using SmartTeam.Domain.Entities;
+using SmartTeam.Domain.Enums;
 using System.Security.Claims;
 
 namespace SmartTeam.Controllers;
@@ -1266,6 +1267,29 @@ public class ProductsController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { error = "An error occurred while retrieving recently added products.", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get products filtered by stock status
+    /// </summary>
+    [HttpGet("stock-status/{status}")]
+    [ProducesResponseType(typeof(PagedResultDto<ProductListDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PagedResultDto<ProductListDto>>> GetProductsByStockStatus(
+        StockStatusFilter status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _productService.GetProductsByStockStatusAsync(status, page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "An error occurred while filtering products by stock status.", message = ex.Message });
         }
     }
 

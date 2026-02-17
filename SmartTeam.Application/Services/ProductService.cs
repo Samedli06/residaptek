@@ -6,6 +6,7 @@ using SmartTeam.Domain.Entities;
 using SmartTeam.Domain.Interfaces;
 using System.Net;
 using SmartTeam.Application.Helpers;
+using SmartTeam.Domain.Enums;
 
 namespace SmartTeam.Application.Services;
 
@@ -1140,6 +1141,45 @@ public class ProductService : IProductService
         };
 
         return summary;
+    }
+
+    public async Task<PagedResultDto<ProductListDto>> GetProductsByStockStatusAsync(StockStatusFilter stockStatus, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        // Get all products
+        var products = await _unitOfWork.Repository<Product>().GetAllAsync(cancellationToken);
+        
+        // Filter by stock status
+        IEnumerable<Product> filteredProducts = stockStatus switch
+        {
+            StockStatusFilter.InStock => products.Where(p => p.IsActive && GetStockStatus(p.StockQuantity) == StockStatus.InStock),
+            StockStatusFilter.LowStock => products.Where(p => p.IsActive && GetStockStatus(p.StockQuantity) == StockStatus.LowStock),
+            StockStatusFilter.OutOfStock => products.Where(p => p.IsActive && GetStockStatus(p.StockQuantity) == StockStatus.OutOfStock),
+            StockStatusFilter.All => products.Where(p => p.IsActive),
+            _ => products.Where(p => p.IsActive)
+        };
+
+        // Get total count before pagination
+        var totalCount = filteredProducts.Count();
+
+        // Apply pagination
+        var paginatedProducts = filteredProducts
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        // Map to DTOs
+        var productDtos = _mapper.Map<List<ProductListDto>>(paginatedProducts);
+
+        // Populate category breadcrumbs
+        await PopulateCategoryBreadcrumbs(productDtos, cancellationToken);
+
+        return new PagedResultDto<ProductListDto>
+        {
+            Items = productDtos,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
 

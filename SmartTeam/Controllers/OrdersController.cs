@@ -161,4 +161,65 @@ public class OrdersController : ControllerBase
 
         return Ok(new { message = "Order deleted successfully." });
     }
+    /// <summary>
+    /// Update order item quantity (Admin only)
+    /// </summary>
+    [HttpPut("{id}/items/{productId}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OrderDto>> UpdateOrderItemQuantity(
+        Guid id, 
+        Guid productId, 
+        [FromBody] UpdateOrderItemQuantityDto updateDto, 
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var order = await _orderService.UpdateOrderItemQuantityAsync(id, productId, updateDto.Quantity, cancellationToken);
+            return Ok(order);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while updating the order item." });
+        }
+    }
+
+    /// <summary>
+    /// Delete an order item (Admin only)
+    /// </summary>
+    [HttpDelete("{id}/items/{productId}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OrderDto>> DeleteOrderItem(Guid id, Guid productId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var order = await _orderService.DeleteOrderItemAsync(id, productId, cancellationToken);
+            return Ok(order);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while deleting the order item." });
+        }
+    }
 }

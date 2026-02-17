@@ -1,5 +1,6 @@
 using SmartTeam.Application.DTOs;
 using SmartTeam.Domain.Entities;
+using SmartTeam.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 
 namespace SmartTeam.Application.Services;
@@ -32,6 +33,7 @@ public interface IProductService
     Task<bool> DeleteProductDetailImageByIdAsync(Guid imageId, CancellationToken cancellationToken = default);
     Task<IEnumerable<ProductStockDto>> GetProductStockStatusAsync(CancellationToken cancellationToken = default);
     Task<StockSummaryDto> GetStockSummaryAsync(CancellationToken cancellationToken = default);
+    Task<PagedResultDto<ProductListDto>> GetProductsByStockStatusAsync(StockStatusFilter stockStatus, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
     Task<RecommendedProductsDto> GetRecommendedProductsAsync(RecommendationRequestDto? request = null, UserRole? userRole = null, Guid? userId = null, CancellationToken cancellationToken = default);
     Task<ProductSpecificationDto?> GetProductSpecificationsAsync(Guid id, CancellationToken cancellationToken = default);
     Task<ProductSpecificationDto> CreateProductSpecificationsAsync(CreateProductSpecificationDto createDto, CancellationToken cancellationToken = default);

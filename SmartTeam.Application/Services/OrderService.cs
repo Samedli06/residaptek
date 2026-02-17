@@ -241,7 +241,10 @@ public class OrderService : IOrderService
             Items = orderDtos,
             TotalCount = totalCount,
             Page = page,
-            PageSize = pageSize
+            PageSize = pageSize,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            HasNextPage = page < (int)Math.Ceiling(totalCount / (double)pageSize),
+            HasPreviousPage = page > 1
         };
     }
 
@@ -279,7 +282,10 @@ public class OrderService : IOrderService
             Items = orderDtos,
             TotalCount = totalCount,
             Page = page,
-            PageSize = pageSize
+            PageSize = pageSize,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            HasNextPage = page < (int)Math.Ceiling(totalCount / (double)pageSize),
+            HasPreviousPage = page > 1
         };
     }
 
@@ -420,6 +426,122 @@ public class OrderService : IOrderService
         // So fetching with includes here won't help MapOrderToDto unless we refactor MapOrderToDto.
         // Given current MapOrderToDto logic, let's just reuse GetOrderByIdAsync logic but ensuring it returns OrderDto.
         return await GetOrderByIdAsync(orderId, cancellationToken);
+    }
+
+    public async Task<OrderDto> UpdateOrderItemQuantityAsync(Guid orderId, Guid productId, int newQuantity, CancellationToken cancellationToken = default)
+    {
+        if (newQuantity <= 0)
+        {
+            throw new ArgumentException("Quantity must be greater than zero.");
+        }
+
+        // 1. Get Order with Items
+        var order = await _unitOfWork.Repository<Order>().GetByIdAsync(orderId, cancellationToken);
+        if (order == null) throw new ArgumentException("Order not found");
+
+        var orderItem = await _unitOfWork.Repository<OrderItem>()
+            .FirstOrDefaultAsync(oi => oi.OrderId == orderId && oi.ProductId == productId, cancellationToken);
+            
+        if (orderItem == null) throw new ArgumentException($"Order item with Product ID {productId} not found in Order {orderId}");
+
+        var product = await _unitOfWork.Repository<Product>().GetByIdAsync(productId, cancellationToken);
+        if (product == null) throw new InvalidOperationException("Product associated with order item not found");
+
+        // 2. Calculate Quantity Difference
+        int oldQuantity = orderItem.Quantity;
+        int quantityDiff = newQuantity - oldQuantity;
+
+        if (quantityDiff == 0) return await MapOrderToDto(order, cancellationToken); // No change
+
+        // 3. Handle Stock Adjustment
+        if (order.Status != OrderStatus.Cancelled)
+        {
+            if (quantityDiff > 0)
+            {
+                // Increasing order quantity -> Decrease stock
+                if (product.StockQuantity < quantityDiff)
+                {
+                    throw new InvalidOperationException($"Insufficient stock for product '{product.Name}'. Available: {product.StockQuantity}, Requested Additional: {quantityDiff}");
+                }
+                product.StockQuantity -= quantityDiff;
+            }
+            else
+            {
+                // Decreasing order quantity -> Increase stock
+                product.StockQuantity += Math.Abs(quantityDiff);
+            }
+            _unitOfWork.Repository<Product>().Update(product);
+        }
+
+        // 4. Update Order Item
+        orderItem.Quantity = newQuantity;
+        orderItem.TotalPrice = orderItem.UnitPrice * newQuantity;
+        _unitOfWork.Repository<OrderItem>().Update(orderItem);
+
+        // 5. Recalculate Order Totals
+        // Optimization: Instead of refetching everything, adjust Order Totals incrementally
+        // However, robust recalculation is safer. 
+        // Given we are inside OrderService, lets stick to the incremental logic used before or simple robust logic.
+        
+        // Re-calculate SubTotal from items? 
+        // We only changed one item.
+        decimal itemPriceDiff = (orderItem.UnitPrice * newQuantity) - (orderItem.UnitPrice * oldQuantity);
+        order.SubTotal += itemPriceDiff;
+        
+        order.TotalAmount = order.SubTotal - (order.PromoCodeDiscount ?? 0) - (order.WalletDiscount ?? 0);
+        
+        _unitOfWork.Repository<Order>().Update(order);
+        
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await MapOrderToDto(order, cancellationToken);
+    }
+
+    public async Task<OrderDto> DeleteOrderItemAsync(Guid orderId, Guid productId, CancellationToken cancellationToken = default)
+    {
+        // 1. Get Order with Items
+        var order = await _unitOfWork.Repository<Order>().GetByIdAsync(orderId, cancellationToken);
+        if (order == null) throw new ArgumentException("Order not found");
+
+        var orderItem = await _unitOfWork.Repository<OrderItem>()
+            .FirstOrDefaultAsync(oi => oi.OrderId == orderId && oi.ProductId == productId, cancellationToken);
+            
+        if (orderItem == null) throw new ArgumentException($"Order item with Product ID {productId} not found in Order {orderId}");
+
+        // 2. Determine if we can delete this item
+        var allItemsCount = await _unitOfWork.Repository<OrderItem>()
+            .CountAsync(oi => oi.OrderId == orderId, cancellationToken);
+            
+        if (allItemsCount <= 1)
+        {
+            throw new InvalidOperationException("Cannot delete the last item in an order. Please delete the order instead.");
+        }
+
+        // 3. Restore Stock (if order is active)
+        if (order.Status != OrderStatus.Cancelled)
+        {
+            var product = await _unitOfWork.Repository<Product>().GetByIdAsync(productId, cancellationToken);
+            if (product != null)
+            {
+                product.StockQuantity += orderItem.Quantity;
+                _unitOfWork.Repository<Product>().Update(product);
+            }
+        }
+
+        // 4. Update Order Totals
+        order.SubTotal -= orderItem.TotalPrice;
+        
+        order.TotalAmount = order.SubTotal - (order.PromoCodeDiscount ?? 0) - (order.WalletDiscount ?? 0);
+        if (order.TotalAmount < 0) order.TotalAmount = 0; 
+
+        _unitOfWork.Repository<Order>().Update(order);
+        
+        // 5. Delete Item
+        _unitOfWork.Repository<OrderItem>().Remove(orderItem);
+        
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await MapOrderToDto(order, cancellationToken);
     }
 
     private async Task<OrderDto> MapOrderToDto(Order order, CancellationToken cancellationToken)

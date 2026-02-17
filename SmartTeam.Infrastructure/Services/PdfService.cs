@@ -137,7 +137,12 @@ public class PdfService : IPdfService
 
                 static IContainer CellStyle(IContainer container)
                 {
-                    return container.DefaultTextStyle(x => x.SemiBold()).PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten2);
+                    return container
+                        .Border(1)
+                        .BorderColor(Colors.Grey.Medium)
+                        .Background(Colors.Grey.Lighten3)
+                        .Padding(5)
+                        .DefaultTextStyle(x => x.SemiBold());
                 }
             });
 
@@ -154,7 +159,10 @@ public class PdfService : IPdfService
 
                 IContainer CellStyle(IContainer container)
                 {
-                    return container.BorderBottom(1).BorderColor(Colors.Grey.Lighten3).PaddingVertical(5);
+                    return container
+                        .Border(1)
+                        .BorderColor(Colors.Grey.Medium)
+                        .Padding(5);
                 }
             }
         });
