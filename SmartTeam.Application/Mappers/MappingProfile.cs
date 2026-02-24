@@ -143,6 +143,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => GenerateSlug(src.Name)))
             .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+        // GlobalSettings mappings
+        CreateMap<GlobalSettings, GlobalSettingsDto>();
     }
 
     private static string GenerateSlug(string name)

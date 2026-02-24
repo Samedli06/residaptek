@@ -156,13 +156,16 @@ namespace SmartTeam
                 }
             }
 
-            // Enable Swagger in all environments
-            app.UseSwagger();
-            app.UseSwaggerUI(options =>
+            // Enable Swagger only in Development
+            if (app.Environment.IsDevelopment())
             {
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "Residaptek API v1");
-                options.RoutePrefix = "swagger";
-            });
+                app.UseSwagger();
+                app.UseSwaggerUI(options =>
+                {
+                    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Residaptek API v1");
+                    options.RoutePrefix = "swagger";
+                });
+            }
 
             // Disable HTTPS redirection to avoid mixed content issues
             // app.UseHttpsRedirection();
@@ -172,10 +175,16 @@ namespace SmartTeam
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // Use Developer Exception Page in all environments to see errors
-            app.UseDeveloperExceptionPage();
-            // app.UseExceptionHandler("/Error");
-            // app.UseStatusCodePages();
+            // Use Developer Exception Page only in Development
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else
+            {
+                app.UseExceptionHandler("/Error");
+                app.UseStatusCodePages();
+            }
 
             app.MapControllers();
 

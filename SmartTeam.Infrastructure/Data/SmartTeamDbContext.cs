@@ -33,6 +33,7 @@ public class SmartTeamDbContext : DbContext
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<UserWallet> UserWallets { get; set; }
     public DbSet<WalletTransaction> WalletTransactions { get; set; }
+    public DbSet<GlobalSettings> GlobalSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

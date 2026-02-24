@@ -102,11 +102,19 @@ public class OrderService : IOrderService
                      UsedAt = TimeHelper.Now
                      // OrderId linkage would be good here if PromoCodeUsage has OrderId
                  };
-                 await _unitOfWork.Repository<PromoCodeUsage>().AddAsync(promoUsage, cancellationToken);
+                  await _unitOfWork.Repository<PromoCodeUsage>().AddAsync(promoUsage, cancellationToken);
              }
         }
         
         decimal totalAmount = subTotal - promoDiscount;
+
+        // 3.1 Validate Minimum Order Amount
+        var settingsId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var settings = await _unitOfWork.Repository<GlobalSettings>().GetByIdAsync(settingsId, cancellationToken);
+        if (settings != null && settings.IsMinimumOrderAmountEnabled && totalAmount < settings.MinimumOrderAmount)
+        {
+            throw new InvalidOperationException($"Minimum order amount is {settings.MinimumOrderAmount} AZN");
+        }
 
         // 3.5. Apply Wallet Balance if requested
         decimal walletDiscount = 0;
