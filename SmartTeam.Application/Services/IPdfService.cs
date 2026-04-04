@@ -6,4 +6,6 @@ public interface IPdfService
 {
     byte[] GenerateOrderReceipt(OrderDto order);
     byte[] GenerateBulkOrderReceipts(IEnumerable<OrderDto> orders, DateTime? fromDate, DateTime? toDate);
+    byte[] GeneratePurchaseExpenseReceipt(ProductPurchaseExpenseDto expense);
+    byte[] GenerateBulkPurchaseExpenseReceipts(IEnumerable<ProductPurchaseExpenseDto> expenses);
 }

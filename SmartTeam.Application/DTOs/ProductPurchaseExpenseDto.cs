@@ -18,6 +18,19 @@ public class CreateProductPurchaseExpenseDto
     public string? Notes { get; set; }
 }
 
+/// <summary>
+/// Admin input to update an existing product purchase expense entry.
+/// </summary>
+public class UpdateProductPurchaseExpenseDto
+{
+    public Guid ProductId { get; set; }
+    public int Quantity { get; set; }
+    public decimal UnitPurchasePrice { get; set; }
+    public DateTime PurchaseDate { get; set; }
+    public string? SupplierName { get; set; }
+    public string? Notes { get; set; }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Response DTOs (API → Client)
 // ─────────────────────────────────────────────────────────────────────────────

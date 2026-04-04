@@ -76,6 +76,78 @@ public class ProductPurchaseExpenseService : IProductPurchaseExpenseService
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // Update
+    // ─────────────────────────────────────────────────────────────────
+
+    public async Task<ProductPurchaseExpenseDto> UpdateAsync(
+        Guid id,
+        UpdateProductPurchaseExpenseDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Fetch old record
+        var expense = await _unitOfWork.Repository<ProductPurchaseExpense>()
+            .GetByIdAsync(id, cancellationToken);
+        
+        if (expense == null)
+            throw new ArgumentException("Expense record not found.");
+
+        // 2. Validate inputs
+        if (dto.Quantity <= 0)
+            throw new ArgumentException("Quantity must be greater than zero.");
+
+        if (dto.UnitPurchasePrice <= 0)
+            throw new ArgumentException("Unit purchase price must be greater than zero.");
+
+        // 3. Handle Stock Adjustment part 1: Revert old product stock
+        var oldProduct = await _unitOfWork.Repository<Product>().GetByIdAsync(expense.ProductId, cancellationToken);
+        if (oldProduct != null)
+        {
+            oldProduct.StockQuantity -= expense.Quantity; // Subtract old quantity
+            oldProduct.UpdatedAt      = TimeHelper.Now;
+            _unitOfWork.Repository<Product>().Update(oldProduct);
+        }
+
+        // 4. Handle Product Change & Snapshot
+        if (expense.ProductId != dto.ProductId)
+        {
+            var newProduct = await _unitOfWork.Repository<Product>().GetByIdAsync(dto.ProductId, cancellationToken);
+            if (newProduct == null)
+                throw new ArgumentException($"New product with ID '{dto.ProductId}' not found.");
+            
+            expense.ProductId   = dto.ProductId;
+            expense.ProductName = newProduct.Name; // Update snapshot
+        }
+
+        // 5. Update Stock Adjustment part 2: Apply new quantity to target product
+        var targetProduct = await _unitOfWork.Repository<Product>().GetByIdAsync(dto.ProductId, cancellationToken);
+        if (targetProduct == null)
+            throw new ArgumentException("Target product not found.");
+
+        targetProduct.StockQuantity += dto.Quantity; // Add new quantity
+        targetProduct.UpdatedAt      = TimeHelper.Now;
+        _unitOfWork.Repository<Product>().Update(targetProduct);
+
+        // 6. Regenerate Invoice Number if date changed
+        if (expense.PurchaseDate.Date != dto.PurchaseDate.Date)
+        {
+            expense.InvoiceNumber = await GenerateInvoiceNumberAsync(dto.PurchaseDate, cancellationToken);
+        }
+
+        // 7. Update remaining fields
+        expense.Quantity          = dto.Quantity;
+        expense.UnitPurchasePrice = dto.UnitPurchasePrice;
+        expense.TotalExpense      = dto.Quantity * dto.UnitPurchasePrice;
+        expense.PurchaseDate      = dto.PurchaseDate;
+        expense.SupplierName      = dto.SupplierName;
+        expense.Notes             = dto.Notes;
+
+        _unitOfWork.Repository<ProductPurchaseExpense>().Update(expense);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return MapToDto(expense);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // Read
     // ─────────────────────────────────────────────────────────────────
 
@@ -168,6 +240,15 @@ public class ProductPurchaseExpenseService : IProductPurchaseExpenseService
             .GetByIdAsync(id, cancellationToken);
 
         if (expense == null) return false;
+
+        // Revert stock on deletion
+        var product = await _unitOfWork.Repository<Product>().GetByIdAsync(expense.ProductId, cancellationToken);
+        if (product != null)
+        {
+            product.StockQuantity -= expense.Quantity;
+            product.UpdatedAt      = TimeHelper.Now;
+            _unitOfWork.Repository<Product>().Update(product);
+        }
 
         _unitOfWork.Repository<ProductPurchaseExpense>().Remove(expense);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

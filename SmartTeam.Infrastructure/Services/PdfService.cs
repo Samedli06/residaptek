@@ -194,4 +194,185 @@ public class PdfService : IPdfService
             });
         });
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Purchase Expense Receipt (Alış Xərcləri Qaiməsi)
+    // ─────────────────────────────────────────────────────────────────
+
+    public byte[] GeneratePurchaseExpenseReceipt(ProductPurchaseExpenseDto expense)
+    {
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(2, Unit.Centimetre);
+
+                page.Header().Element(header => ComposePurchaseHeader(header, expense));
+                page.Content().Element(content => ComposePurchaseContent(content, expense));
+                page.Footer().Element(footer => ComposePurchaseFooter(footer));
+            });
+        }).GeneratePdf();
+    }
+
+    public byte[] GenerateBulkPurchaseExpenseReceipts(IEnumerable<ProductPurchaseExpenseDto> expenses)
+    {
+        return Document.Create(container =>
+        {
+            foreach (var expense in expenses)
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2, Unit.Centimetre);
+
+                    page.Header().Element(header => ComposePurchaseHeader(header, expense));
+                    page.Content().Element(content => ComposePurchaseContent(content, expense));
+                    page.Footer().Element(footer => ComposePurchaseFooter(footer));
+                });
+            }
+        }).GeneratePdf();
+    }
+
+    private void ComposePurchaseHeader(IContainer container, ProductPurchaseExpenseDto expense)
+    {
+        container.Row(row =>
+        {
+            // Left: Company info
+            row.RelativeItem().Column(column =>
+            {
+                column.Item().Text("E-DEPO.az").FontSize(14).ExtraBold().FontColor(Colors.Blue.Medium);
+                column.Item().Text("Masazır, Yeni Bakı 123").FontSize(10);
+                column.Item().Text("Tel: +994 099 399 96 44").FontSize(10);
+                column.Item().Text("Email: Info@e-depo.az").FontSize(10);
+            });
+
+            // Right: Invoice title + number + date
+            row.ConstantItem(180).Column(column =>
+            {
+                column.Item().Text("ALIŞ QAİMƏSİ").FontSize(18).SemiBold().AlignRight();
+                column.Item().Text(expense.InvoiceNumber).FontSize(12).AlignRight();
+                column.Item().Text(expense.PurchaseDate.ToString("dd.MM.yyyy HH:mm")).FontSize(10).AlignRight();
+            });
+        });
+    }
+
+    private void ComposePurchaseContent(IContainer container, ProductPurchaseExpenseDto expense)
+    {
+        container.PaddingVertical(40).Column(column =>
+        {
+            // Supplier / Product info block
+            column.Item().Row(row =>
+            {
+                // Left: Supplier info
+                row.RelativeItem().Column(col =>
+                {
+                    col.Item().Text("Tədarikçi:").FontColor(Colors.Grey.Medium).FontSize(10);
+                    col.Item().Text(
+                        string.IsNullOrEmpty(expense.SupplierName) ? "—" : expense.SupplierName
+                    ).FontSize(12).SemiBold();
+                });
+
+                // Right: Status badge
+                row.RelativeItem().Column(col =>
+                {
+                    col.Item().Text("Növ:").FontColor(Colors.Grey.Medium).FontSize(10).AlignRight();
+                    col.Item().Text("Alış").FontSize(12).SemiBold().AlignRight();
+                });
+            });
+
+            // Notes (if any)
+            if (!string.IsNullOrEmpty(expense.Notes))
+            {
+                column.Item().PaddingTop(8).Text($"Qeyd: {expense.Notes}")
+                    .FontSize(10).FontColor(Colors.Grey.Darken1).Italic();
+            }
+
+            // Item table
+            column.Item().PaddingTop(25).Table(table =>
+            {
+                // Column widths
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.ConstantColumn(25);  // #
+                    columns.RelativeColumn(3);   // Məhsul
+                    columns.RelativeColumn();    // Miqdar
+                    columns.RelativeColumn();    // Vahid Qiymət
+                    columns.RelativeColumn();    // Ümumi Xərc
+                });
+
+                // Header
+                table.Header(header =>
+                {
+                    header.Cell().Element(HeaderCellStyle).Text("#");
+                    header.Cell().Element(HeaderCellStyle).Text("Məhsul");
+                    header.Cell().Element(HeaderCellStyle).AlignRight().Text("Miqdar");
+                    header.Cell().Element(HeaderCellStyle).AlignRight().Text("Vahid Qiymət");
+                    header.Cell().Element(HeaderCellStyle).AlignRight().Text("Ümumi Xərc");
+
+                    static IContainer HeaderCellStyle(IContainer c) =>
+                        c.Border(1)
+                         .BorderColor(Colors.Grey.Medium)
+                         .Background(Colors.Grey.Lighten3)
+                         .Padding(5)
+                         .DefaultTextStyle(x => x.SemiBold());
+                });
+
+                // Single item row (one expense = one product purchase line)
+                table.Cell().Element(BodyCellStyle).Text("1");
+                table.Cell().Element(BodyCellStyle).Text(expense.ProductName);
+                table.Cell().Element(BodyCellStyle).AlignRight().Text($"{expense.Quantity}");
+                table.Cell().Element(BodyCellStyle).AlignRight().Text($"{expense.UnitPurchasePrice:N2} ₼");
+                table.Cell().Element(BodyCellStyle).AlignRight().Text($"{expense.TotalExpense:N2} ₼");
+
+                static IContainer BodyCellStyle(IContainer c) =>
+                    c.Border(1)
+                     .BorderColor(Colors.Grey.Medium)
+                     .Padding(5);
+            });
+
+            // Totals
+            column.Item().PaddingTop(20).Column(col =>
+            {
+                col.Item().Row(row =>
+                {
+                    row.RelativeItem().AlignRight()
+                        .Text($"Cəm Məbləğ: {expense.TotalExpense:N2} ₼").FontSize(10);
+                });
+
+                col.Item().PaddingTop(5).Row(row =>
+                {
+                    row.RelativeItem().AlignRight()
+                        .Text($"Yekun Məbləğ: {expense.TotalExpense:N2} ₼").FontSize(16).SemiBold();
+                });
+            });
+        });
+    }
+
+    private void ComposePurchaseFooter(IContainer container)
+    {
+        container.Row(row =>
+        {
+            row.RelativeItem(2).Row(sigRow =>
+            {
+                sigRow.RelativeItem().Column(col =>
+                {
+                    col.Item().Text("Təhvil verən (Satıcı):").FontSize(10);
+                    col.Item().PaddingTop(25).Text("_____________________");
+                });
+
+                sigRow.RelativeItem().Column(col =>
+                {
+                    col.Item().Text("Qəbul edən (Anbar):").FontSize(10);
+                    col.Item().PaddingTop(25).Text("_____________________");
+                });
+            });
+
+            row.RelativeItem().AlignRight().Text(x =>
+            {
+                x.Span("Səhifə ");
+                x.CurrentPageNumber();
+            });
+        });
+    }
 }

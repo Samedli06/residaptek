@@ -16,6 +16,15 @@ public interface IProductPurchaseExpenseService
         CreateProductPurchaseExpenseDto dto,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Updates an existing purchase expense entry.
+    /// Manages stock updates for both old and new products.
+    /// </summary>
+    Task<ProductPurchaseExpenseDto> UpdateAsync(
+        Guid id,
+        UpdateProductPurchaseExpenseDto dto,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Returns all expense entries ordered by PurchaseDate descending.</summary>
     Task<IEnumerable<ProductPurchaseExpenseDto>> GetAllAsync(
         CancellationToken cancellationToken = default);

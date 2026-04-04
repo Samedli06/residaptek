@@ -16,10 +16,14 @@ namespace SmartTeam.Controllers;
 public class ProductPurchaseExpensesController : ControllerBase
 {
     private readonly IProductPurchaseExpenseService _expenseService;
+    private readonly IPdfService _pdfService;
 
-    public ProductPurchaseExpensesController(IProductPurchaseExpenseService expenseService)
+    public ProductPurchaseExpensesController(
+        IProductPurchaseExpenseService expenseService,
+        IPdfService pdfService)
     {
         _expenseService = expenseService;
+        _pdfService = pdfService;
     }
 
     /// <summary>
@@ -46,6 +50,35 @@ public class ProductPurchaseExpensesController : ControllerBase
         catch (Exception)
         {
             return StatusCode(500, new { message = "An error occurred while creating the expense record." });
+        }
+    }
+
+    /// <summary>
+    /// PUT api/v1/admin/purchase-expenses/{id}
+    /// Updates an existing product purchase expense.
+    /// Adjusts product stock automatically.
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(ProductPurchaseExpenseDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<ProductPurchaseExpenseDto>> Update(
+        Guid id,
+        [FromBody] UpdateProductPurchaseExpenseDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var expense = await _expenseService.UpdateAsync(id, dto, cancellationToken);
+            return Ok(expense);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while updating the expense record." });
         }
     }
 
@@ -163,6 +196,81 @@ public class ProductPurchaseExpensesController : ControllerBase
         catch (Exception)
         {
             return StatusCode(500, new { message = "An error occurred while deleting the expense record." });
+        }
+    }
+
+    /// <summary>
+    /// GET api/v1/admin/purchase-expenses/{id}/pdf
+    /// Downloads a single purchase expense as a PDF qaime (invoice).
+    /// </summary>
+    [HttpGet("{id:guid}/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult> DownloadPdf(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var expense = await _expenseService.GetByIdAsync(id, cancellationToken);
+            if (expense == null)
+                return NotFound(new { message = "Expense record not found." });
+
+            var pdfBytes = _pdfService.GeneratePurchaseExpenseReceipt(expense);
+            var fileName = $"alis-qaime-{expense.InvoiceNumber}.pdf";
+
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while generating the PDF." });
+        }
+    }
+
+    /// <summary>
+    /// GET api/v1/admin/purchase-expenses/export/pdf
+    /// Downloads all purchase expenses (optionally filtered by date) as a single bulk PDF.
+    /// </summary>
+    [HttpGet("export/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), 200)]
+    public async Task<ActionResult> DownloadBulkPdf(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            IEnumerable<ProductPurchaseExpenseDto> expenses;
+
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                // Note: GetByDateRangeAsync returns a summary. 
+                // To get the actual records, we need to query the service.
+                // We'll reuse GetAllAsync and filter in memory since it's an admin tool,
+                // or we could add a new method to the service. For simplicity, filtering here:
+                var allExpenses = await _expenseService.GetAllAsync(cancellationToken);
+                
+                var start = startDate.Value.Date;
+                var end = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                
+                expenses = allExpenses.Where(e => e.PurchaseDate >= start && e.PurchaseDate <= end).ToList();
+            }
+            else
+            {
+                expenses = await _expenseService.GetAllAsync(cancellationToken);
+            }
+
+            if (!expenses.Any())
+                return NotFound(new { message = "No expense records found for the selected criteria." });
+
+            var pdfBytes = _pdfService.GenerateBulkPurchaseExpenseReceipts(expenses);
+            
+            var dateStr = DateTime.Now.ToString("yyyyMMdd_HHmm");
+            var fileName = $"alis-xircleri-toplu-{dateStr}.pdf";
+
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "An error occurred while generating the bulk PDF." });
         }
     }
 }
