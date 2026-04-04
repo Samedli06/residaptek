@@ -345,6 +345,7 @@ public class ProductService : IProductService
             IsActive = true,
             Price = createProductDto.Price,
             DiscountedPrice = createProductDto.DiscountedPrice,
+            PurchasePrice = createProductDto.PurchasePrice, // Internal cost price — admin only
             MinimumOrderQuantity = createProductDto.MinimumOrderQuantity,
             CreatedAt = TimeHelper.Now
         };
@@ -1284,10 +1285,10 @@ public class ProductService : IProductService
     {
         return stockQuantity switch
         {
-            0 => "Out of Stock",
-            > 0 and <= 10 => "Low Stock",
-            > 10 => "In Stock",
-            _ => "Out of Stock"
+            0 => "Stok bitib",
+            > 0 and <= 10 => "Stok azalıb",
+            > 10 => "Stokda var",
+            _ => "Stok bitib"
         };
     }
 
@@ -1366,7 +1367,7 @@ public class ProductService : IProductService
             GroupName = "Stock Information",
             Items = new List<SpecificationItemDto>
             {
-                new() { Name = "Quantity", Value = product.StockQuantity.ToString(), Unit = "units", Type = SpecificationType.Technical },
+                new() { Name = "Stok sayı", Value = product.StockQuantity.ToString(), Unit = "ədəd", Type = SpecificationType.Technical },
                 new() { Name = "Hot Deal", Value = product.IsHotDeal ? "Yes" : "No", Type = SpecificationType.Feature }
             }
         };

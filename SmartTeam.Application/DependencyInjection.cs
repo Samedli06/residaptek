@@ -32,6 +32,8 @@ public static class DependencyInjection
         services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
+        services.AddScoped<IProfitService, ProfitService>();
+        services.AddScoped<IProductPurchaseExpenseService, ProductPurchaseExpenseService>();
         services.AddScoped<IGlobalSettingsService, GlobalSettingsService>();
 
         return services;

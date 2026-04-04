@@ -65,7 +65,7 @@ public class OrderService : IOrderService
                 throw new InvalidOperationException($"Insufficient stock for product '{product.Name}'. Available: {product.StockQuantity}, Requested: {cartItem.Quantity}");
             }
             
-            // Create Order Item snapshot
+            // Create Order Item snapshot (prices locked at order time for historical accuracy)
             var orderItem = new OrderItem
             {
                 Id = Guid.NewGuid(),
@@ -74,7 +74,8 @@ public class OrderService : IOrderService
                 ProductSku = product.Sku,
                 Quantity = cartItem.Quantity,
                 UnitPrice = cartItem.UnitPrice,
-                TotalPrice = cartItem.TotalPrice
+                TotalPrice = cartItem.TotalPrice,
+                UnitCostPrice = product.PurchasePrice // Snapshot cost price — never recalculate from current product data
             };
             
             orderItems.Add(orderItem);

@@ -33,4 +33,12 @@ public class WalletController : ControllerBase
         var transactions = await _walletService.GetTransactionHistoryAsync(userId, cancellationToken);
         return Ok(transactions);
     }
+
+    [HttpGet("admin/all-bonuses")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<IEnumerable<UserBonusDto>>> GetAllUserBonuses(CancellationToken cancellationToken)
+    {
+        var bonuses = await _walletService.GetAllUserBonusesAsync(cancellationToken);
+        return Ok(bonuses);
+    }
 }

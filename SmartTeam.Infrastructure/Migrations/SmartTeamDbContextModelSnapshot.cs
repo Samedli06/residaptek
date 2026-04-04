@@ -484,7 +484,7 @@ namespace SmartTeam.Infrastructure.Migrations
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
                             IsMinimumOrderAmountEnabled = false,
                             MinimumOrderAmount = 0m,
-                            UpdatedAt = new DateTime(2026, 2, 18, 21, 40, 26, 564, DateTimeKind.Utc).AddTicks(1031)
+                            UpdatedAt = new DateTime(2026, 4, 2, 18, 24, 6, 780, DateTimeKind.Utc).AddTicks(5344)
                         });
                 });
 
@@ -553,6 +553,9 @@ namespace SmartTeam.Infrastructure.Migrations
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal?>("TaxiCost")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -601,6 +604,9 @@ namespace SmartTeam.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("UnitCostPrice")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("UnitPrice")
@@ -701,6 +707,10 @@ namespace SmartTeam.Infrastructure.Migrations
                         .HasColumnType("nvarchar(300)");
 
                     b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PurchasePrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
@@ -909,6 +919,60 @@ namespace SmartTeam.Infrastructure.Migrations
                     b.HasIndex("UpdatedBy");
 
                     b.ToTable("ProductPdfs", (string)null);
+                });
+
+            modelBuilder.Entity("SmartTeam.Domain.Entities.ProductPurchaseExpense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("PurchaseDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SupplierName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("TotalExpense")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPurchasePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductPurchaseExpenses");
                 });
 
             modelBuilder.Entity("SmartTeam.Domain.Entities.ProductSpecification", b =>
@@ -1439,6 +1503,17 @@ namespace SmartTeam.Infrastructure.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("SmartTeam.Domain.Entities.ProductPurchaseExpense", b =>
+                {
+                    b.HasOne("SmartTeam.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("SmartTeam.Domain.Entities.ProductSpecification", b =>

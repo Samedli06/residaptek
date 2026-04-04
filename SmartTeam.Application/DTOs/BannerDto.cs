@@ -61,16 +61,16 @@ public class CreateBannerWithImageDto
 
 public class UpdateBannerDto
 {
-    public string Title { get; set; } = string.Empty;
-    public bool TitleVisible { get; set; } = true;
+    public string? Title { get; set; }
+    public bool? TitleVisible { get; set; }
     public string? Description { get; set; }
-    public bool DescriptionVisible { get; set; } = true;
+    public bool? DescriptionVisible { get; set; }
     public string? LinkUrl { get; set; }
     public string? ButtonText { get; set; }
-    public bool ButtonVisible { get; set; } = true;
-    public BannerType Type { get; set; }
-    public bool IsActive { get; set; }
-    public int SortOrder { get; set; }
+    public bool? ButtonVisible { get; set; }
+    public BannerType? Type { get; set; }
+    public bool? IsActive { get; set; }
+    public int? SortOrder { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 }

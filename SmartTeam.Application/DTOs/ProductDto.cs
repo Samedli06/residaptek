@@ -27,6 +27,7 @@ public class ProductDto
     public string? DetailImageUrl { get; set; }
     public decimal Price { get; set; }
     public decimal? DiscountedPrice { get; set; }
+    public decimal? PurchasePrice { get; set; } // Admin only — internal cost price
     public List<ProductImageDto> Images { get; set; } = new();
     public bool IsFavorite { get; set; } = false;
     public DateTime CreatedAt { get; set; }
@@ -83,6 +84,7 @@ public class CreateProductDto
     public Guid? BrandId { get; set; }
     public decimal Price { get; set; }
     public decimal? DiscountedPrice { get; set; }
+    public decimal? PurchasePrice { get; set; } // Admin-only cost price
 }
 
 public class CreateProductWithImageDto
@@ -98,6 +100,7 @@ public class CreateProductWithImageDto
     public Guid? BrandId { get; set; }
     public decimal Price { get; set; }
     public decimal? DiscountedPrice { get; set; }
+    public decimal? PurchasePrice { get; set; } // Admin-only cost price
 }
 
 public class UpdateProductDto
@@ -114,6 +117,7 @@ public class UpdateProductDto
     public Guid? BrandId { get; set; }
     public decimal Price { get; set; }
     public decimal? DiscountedPrice { get; set; }
+    public decimal? PurchasePrice { get; set; } // Admin-only cost price
     public List<string>? DetailImageUrls { get; set; } // For tracking existing detail images
 }
 

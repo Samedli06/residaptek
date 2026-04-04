@@ -35,6 +35,9 @@ public class Order
     // Bonus Tracking
     public bool BonusAwarded { get; set; } = false;
     public decimal? BonusAmount { get; set; }
+
+    // Cost Tracking (admin-only)
+    public decimal? TaxiCost { get; set; } // Delivery/taxi cost entered by admin — subtracted from net profit
 }
 
 public class OrderItem
@@ -52,6 +55,7 @@ public class OrderItem
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalPrice { get; set; }
+    public decimal? UnitCostPrice { get; set; } // Snapshot of PurchasePrice at time of order — for historical profit accuracy
 }
 
 public enum OrderStatus

@@ -44,6 +44,9 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.BonusAmount)
             .HasColumnType("decimal(18,2)");
 
+        builder.Property(o => o.TaxiCost)
+            .HasColumnType("decimal(18,2)");
+
         builder.Property(o => o.Status)
             .HasConversion<int>();
 
@@ -77,6 +80,9 @@ public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
             .HasColumnType("decimal(18,2)");
 
         builder.Property(oi => oi.TotalPrice)
+            .HasColumnType("decimal(18,2)");
+
+        builder.Property(oi => oi.UnitCostPrice)
             .HasColumnType("decimal(18,2)");
 
         builder.HasOne(oi => oi.Product)

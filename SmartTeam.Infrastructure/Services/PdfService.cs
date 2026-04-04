@@ -50,7 +50,7 @@ public class PdfService : IPdfService
             row.RelativeItem().Column(column =>
             {
                 column.Item().Text("E-DEPO.az").FontSize(14).ExtraBold().FontColor(Colors.Blue.Medium);
-                column.Item().Text("Bakı Masazır, Yeni Bakı 16").FontSize(10);
+                column.Item().Text("Masazır, Yeni Bakı 123").FontSize(10);
                 column.Item().Text("Tel: +994 099 399 96 44").FontSize(10);
                 column.Item().Text("Email: Info@e-depo.az").FontSize(10);
             });

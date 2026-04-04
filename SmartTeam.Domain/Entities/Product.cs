@@ -28,6 +28,7 @@ public class Product
     // Pricing
     public decimal Price { get; set; }
     public decimal? DiscountedPrice { get; set; }
+    public decimal? PurchasePrice { get; set; } // Internal cost price — admin only, never expose to regular users
     
     // Images
     public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();

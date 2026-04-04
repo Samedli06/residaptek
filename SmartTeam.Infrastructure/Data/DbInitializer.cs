@@ -14,7 +14,8 @@ public static class DbInitializer
         // Always ensure admin user exists with correct credentials
         await EnsureAdminUserAsync(context);
 
-
+        // Update existing specifications for all 900+ products (one-time migration)
+        await EnsureSpecificationsTranslatedAsync(context);
 
         // Only seed initial data if no users exist (excluding the admin we just created/updated)
         var userCount = await context.Users.CountAsync();
@@ -140,8 +141,23 @@ public static class DbInitializer
             context.Users.Update(adminUser);
             await context.SaveChangesAsync();
         }
-
     }
 
+    private static async Task EnsureSpecificationsTranslatedAsync(SmartTeamDbContext context)
+    {
+        // Find existing specifications with the name 'Quantity'
+        var specificationsToUpdate = await context.ProductSpecifications
+            .Where(ps => ps.Name == "Quantity")
+            .ToListAsync();
 
+        if (specificationsToUpdate.Any())
+        {
+            foreach (var spec in specificationsToUpdate)
+            {
+                spec.Name = "Stok sayı";
+                spec.Unit = "ədəd";
+            }
+            await context.SaveChangesAsync();
+        }
+    }
 }
