@@ -270,11 +270,22 @@ public class ProductPurchaseExpenseService : IProductPurchaseExpenseService
         var datePart = purchaseDate.ToString("yyyyMMdd");
         var prefix   = $"PEXP-{datePart}-";
 
-        // Count existing entries for the same day to determine the next sequence
+        // Fetch existing entries for the same day to find the maximum sequence used
         var existingOnDay = await _unitOfWork.Repository<ProductPurchaseExpense>()
             .FindAsync(e => e.InvoiceNumber.StartsWith(prefix), cancellationToken);
 
-        var nextSequence = existingOnDay.Count() + 1;
+        int maxSequence = 0;
+        foreach (var expense in existingOnDay)
+        {
+            // Format is PEXP-YYYYMMDD-XXXX
+            var parts = expense.InvoiceNumber.Split('-');
+            if (parts.Length == 3 && int.TryParse(parts[2], out int seq))
+            {
+                if (seq > maxSequence) maxSequence = seq;
+            }
+        }
+
+        var nextSequence = maxSequence + 1;
         return $"{prefix}{nextSequence:D4}";
     }
 
