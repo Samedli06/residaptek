@@ -138,6 +138,8 @@ public class ProductFilterCriteriaDto
 {
     public Guid? CategoryId { get; set; }
     public string? BrandSlug { get; set; }
+    public List<string>? BrandSlugs { get; set; }
+    public bool? InStockOnly { get; set; }
     public bool? IsHotDeal { get; set; }
     public bool? IsRecommended { get; set; }
     public string? SearchTerm { get; set; }

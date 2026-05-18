@@ -87,25 +87,71 @@ public class OrderService : IOrderService
         if (cart.AppliedPromoCodeId.HasValue && cart.PromoCodeDiscountPercentage.HasValue)
         {
              promoDiscount = subTotal * (cart.PromoCodeDiscountPercentage.Value / 100);
-             // Increment promo usage logic could be here or separately
-             // Let's assume promo usage increment happens elsewhere or we add it here:
              var promo = await _unitOfWork.Repository<PromoCode>().GetByIdAsync(cart.AppliedPromoCodeId.Value, cancellationToken);
              if (promo != null)
              {
-                 promo.CurrentUsageCount++;
-                 _unitOfWork.Repository<PromoCode>().Update(promo);
-                 
-                 var promoUsage = new PromoCodeUsage
+                 // Guard: check user hasn't already used this code (stale cart state protection)
+                 var alreadyUsedByUser = await _unitOfWork.Repository<PromoCodeUsage>()
+                     .FirstOrDefaultAsync(u => u.PromoCodeId == promo.Id && u.UserId == userId, cancellationToken);
+
+                 if (alreadyUsedByUser != null)
                  {
-                     Id = Guid.NewGuid(),
-                     PromoCodeId = promo.Id,
-                     UserId = userId,
-                     UsedAt = TimeHelper.Now
-                     // OrderId linkage would be good here if PromoCodeUsage has OrderId
-                 };
-                  await _unitOfWork.Repository<PromoCodeUsage>().AddAsync(promoUsage, cancellationToken);
+                     // Promo is stale on the cart — ignore it, apply no discount
+                     promoDiscount = 0;
+                 }
+                 else
+                 {
+                     // Final safety net: re-check global limit at order time
+                     // (guards against race conditions that slipped through apply-time check)
+                     if (promo.UsageLimit.HasValue)
+                     {
+                         var actualUsageCount = (await _unitOfWork.Repository<PromoCodeUsage>()
+                             .FindAsync(u => u.PromoCodeId == promo.Id, cancellationToken))
+                             .Count();
+
+                         if (actualUsageCount >= promo.UsageLimit.Value)
+                         {
+                             // Hard limit reached — do not apply discount
+                             promoDiscount = 0;
+                         }
+                         else
+                         {
+                             promo.CurrentUsageCount++;
+                             _unitOfWork.Repository<PromoCode>().Update(promo);
+
+                             var promoUsage = new PromoCodeUsage
+                             {
+                                 Id = Guid.NewGuid(),
+                                 PromoCodeId = promo.Id,
+                                 UserId = userId,
+                                 DiscountAmount = promoDiscount,
+                                 OrderTotal = subTotal,
+                                 UsedAt = TimeHelper.Now
+                             };
+                             await _unitOfWork.Repository<PromoCodeUsage>().AddAsync(promoUsage, cancellationToken);
+                         }
+                     }
+                     else
+                     {
+                         // No limit set — always record usage
+                         promo.CurrentUsageCount++;
+                         _unitOfWork.Repository<PromoCode>().Update(promo);
+
+                         var promoUsage = new PromoCodeUsage
+                         {
+                             Id = Guid.NewGuid(),
+                             PromoCodeId = promo.Id,
+                             UserId = userId,
+                             DiscountAmount = promoDiscount,
+                             OrderTotal = subTotal,
+                             UsedAt = TimeHelper.Now
+                         };
+                         await _unitOfWork.Repository<PromoCodeUsage>().AddAsync(promoUsage, cancellationToken);
+                     }
+                 }
              }
         }
+
         
         decimal totalAmount = subTotal - promoDiscount;
 
@@ -200,7 +246,7 @@ public class OrderService : IOrderService
     public async Task<IEnumerable<OrderListDto>> GetUserOrdersAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var orders = await _unitOfWork.Repository<Order>()
-            .FindAsync(o => o.UserId == userId, cancellationToken);
+            .FindWithIncludesAsync(o => o.UserId == userId, o => o.Items, o => o.User);
             
         return orders.OrderByDescending(o => o.CreatedAt)
             .Select(o => new OrderListDto
@@ -208,41 +254,35 @@ public class OrderService : IOrderService
                 Id = o.Id,
                 OrderNumber = o.OrderNumber,
                 CustomerName = o.CustomerName,
+                PharmacyName = o.User?.PharmacyName ?? string.Empty,
                 TotalAmount = o.TotalAmount,
                 Status = o.Status,
                 StatusText = o.Status.ToString(),
                 CreatedAt = o.CreatedAt,
-                ItemsCount = 0 // Optimization: we'd need to include items count in query or fetch
+                ItemsCount = o.Items.Count
             });
     }
 
     public async Task<PagedResultDto<OrderListDto>> GetAllOrdersAsync(int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var orders = await _unitOfWork.Repository<Order>()
-            .FindAsync(o => true, cancellationToken);
+            .FindWithIncludesAsync(o => true, o => o.User, o => o.Items);
 
-        var ordersWithUsers = new List<(Order order, User? user)>();
-        foreach (var order in orders)
-        {
-            var user = await _unitOfWork.Repository<User>().GetByIdAsync(order.UserId, cancellationToken);
-            ordersWithUsers.Add((order, user));
-        }
-
-        var orderedList = ordersWithUsers.OrderByDescending(x => x.order.CreatedAt).ToList();
+        var orderedList = orders.OrderByDescending(o => o.CreatedAt).ToList();
         var totalCount = orderedList.Count;
         var pagedItems = orderedList.Skip((page - 1) * pageSize).Take(pageSize);
 
-        var orderDtos = pagedItems.Select(x => new OrderListDto
+        var orderDtos = pagedItems.Select(o => new OrderListDto
         {
-            Id = x.order.Id,
-            OrderNumber = x.order.OrderNumber,
-            CustomerName = x.order.CustomerName,
-            PharmacyName = x.user?.PharmacyName ?? string.Empty,
-            TotalAmount = x.order.TotalAmount,
-            Status = x.order.Status,
-            StatusText = x.order.Status.ToString(),
-            CreatedAt = x.order.CreatedAt,
-            ItemsCount = 0 
+            Id = o.Id,
+            OrderNumber = o.OrderNumber,
+            CustomerName = o.CustomerName,
+            PharmacyName = o.User?.PharmacyName ?? string.Empty,
+            TotalAmount = o.TotalAmount,
+            Status = o.Status,
+            StatusText = o.Status.ToString(),
+            CreatedAt = o.CreatedAt,
+            ItemsCount = o.Items.Count
         }).ToList();
 
         return new PagedResultDto<OrderListDto>
@@ -256,34 +296,28 @@ public class OrderService : IOrderService
             HasPreviousPage = page > 1
         };
     }
+
 
     public async Task<PagedResultDto<OrderListDto>> SearchOrdersByNameAsync(string customerName, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var orders = await _unitOfWork.Repository<Order>()
-            .FindAsync(o => o.CustomerName.Contains(customerName), cancellationToken);
+            .FindWithIncludesAsync(o => o.CustomerName.Contains(customerName), o => o.User, o => o.Items);
 
-        var ordersWithUsers = new List<(Order order, User? user)>();
-        foreach (var order in orders)
-        {
-            var user = await _unitOfWork.Repository<User>().GetByIdAsync(order.UserId, cancellationToken);
-            ordersWithUsers.Add((order, user));
-        }
-
-        var orderedList = ordersWithUsers.OrderByDescending(x => x.order.CreatedAt).ToList();
+        var orderedList = orders.OrderByDescending(o => o.CreatedAt).ToList();
         var totalCount = orderedList.Count;
         var pagedItems = orderedList.Skip((page - 1) * pageSize).Take(pageSize);
 
-        var orderDtos = pagedItems.Select(x => new OrderListDto
+        var orderDtos = pagedItems.Select(o => new OrderListDto
         {
-            Id = x.order.Id,
-            OrderNumber = x.order.OrderNumber,
-            CustomerName = x.order.CustomerName,
-            PharmacyName = x.user?.PharmacyName ?? string.Empty,
-            TotalAmount = x.order.TotalAmount,
-            Status = x.order.Status,
-            StatusText = x.order.Status.ToString(),
-            CreatedAt = x.order.CreatedAt,
-            ItemsCount = 0
+            Id = o.Id,
+            OrderNumber = o.OrderNumber,
+            CustomerName = o.CustomerName,
+            PharmacyName = o.User?.PharmacyName ?? string.Empty,
+            TotalAmount = o.TotalAmount,
+            Status = o.Status,
+            StatusText = o.Status.ToString(),
+            CreatedAt = o.CreatedAt,
+            ItemsCount = o.Items.Count
         }).ToList();
 
         return new PagedResultDto<OrderListDto>
@@ -297,6 +331,7 @@ public class OrderService : IOrderService
             HasPreviousPage = page > 1
         };
     }
+
 
     public async Task<OrderDto> UpdateOrderStatusAsync(Guid orderId, UpdateOrderStatusDto updateDto, CancellationToken cancellationToken = default)
     {
@@ -366,6 +401,12 @@ public class OrderService : IOrderService
             order.CancelledAt = TimeHelper.Now;
         }
 
+        // Revert Bonus if moving AWAY from Delivered
+        if (oldStatus == OrderStatus.Delivered && newStatus != OrderStatus.Delivered)
+        {
+            await RevertBonusAsync(order, cancellationToken);
+        }
+
         _unitOfWork.Repository<Order>().Update(order);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -399,6 +440,23 @@ public class OrderService : IOrderService
                 order.BonusAmount = bonusAmount;
                 // Order update will be saved by caller
             }
+        }
+    }
+
+    private async Task RevertBonusAsync(Order order, CancellationToken cancellationToken)
+    {
+        if (order.BonusAwarded && (order.BonusAmount ?? 0) > 0)
+        {
+            await _walletService.RevertBonusAsync(
+                order.UserId,
+                order.BonusAmount.Value,
+                $"Bonus reversal for Order #{order.OrderNumber} (Status changed from Delivered)",
+                order.Id,
+                cancellationToken
+            );
+
+            order.BonusAwarded = false;
+            // We keep order.BonusAmount as it represents the potential bonus for this order if re-delivered
         }
     }
 
@@ -592,6 +650,7 @@ public class OrderService : IOrderService
                  ProductSku = item.ProductSku,
                  Quantity = item.Quantity,
                  UnitPrice = item.UnitPrice,
+                 DiscountedUnitPrice = item.DiscountedUnitPrice,
                  TotalPrice = item.TotalPrice,
                  ProductImageUrl = imageUrl
              });
@@ -614,6 +673,7 @@ public class OrderService : IOrderService
             PromoCodeDiscount = order.PromoCodeDiscount,
             WalletDiscount = order.WalletDiscount,
             TotalAmount = order.TotalAmount,
+            FinalPrice = order.FinalPrice,
             Status = order.Status,
             StatusText = order.Status.ToString(),
             CreatedAt = order.CreatedAt,
@@ -645,5 +705,64 @@ public class OrderService : IOrderService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         
         return true;
+    }
+
+    public async Task<OrderDto> UpdateFinalPriceAsync(Guid orderId, UpdateFinalPriceDto dto, CancellationToken cancellationToken = default)
+    {
+        var order = await _unitOfWork.Repository<Order>().GetByIdAsync(orderId, cancellationToken);
+        if (order == null) throw new ArgumentException("Sifariş tapılmadı");
+
+        // Validate: if a value is provided it must be positive
+        if (dto.FinalPrice.HasValue && dto.FinalPrice.Value < 0)
+            throw new ArgumentException("Yekun qiymət mənfi ola bilməz");
+
+        order.FinalPrice = dto.FinalPrice; // null = clear override
+        order.UpdatedAt = TimeHelper.Now;
+
+        _unitOfWork.Repository<Order>().Update(order);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await MapOrderToDto(order, cancellationToken);
+    }
+
+    public async Task<OrderDto> UpdateOrderItemPriceAsync(Guid orderId, Guid productId, UpdateOrderItemPriceDto dto, CancellationToken cancellationToken = default)
+    {
+        var order = await _unitOfWork.Repository<Order>().GetByIdAsync(orderId, cancellationToken);
+        if (order == null) throw new ArgumentException("Sifariş tapılmadı");
+
+        var orderItem = await _unitOfWork.Repository<OrderItem>()
+            .FirstOrDefaultAsync(oi => oi.OrderId == orderId && oi.ProductId == productId, cancellationToken);
+        if (orderItem == null) throw new ArgumentException($"Sifariş məhsulu tapılmadı");
+
+        // Validate discounted price
+        if (dto.DiscountedUnitPrice.HasValue)
+        {
+            if (dto.DiscountedUnitPrice.Value < 0)
+                throw new ArgumentException("Endirimli qiymət mənfi ola bilməz");
+            if (dto.DiscountedUnitPrice.Value > orderItem.UnitPrice)
+                throw new ArgumentException("Endirimli qiymət orijinal qiymətdən çox ola bilməz");
+        }
+
+        // Set discounted price
+        orderItem.DiscountedUnitPrice = dto.DiscountedUnitPrice;
+
+        // Recalculate item TotalPrice using the effective price
+        decimal effectivePrice = dto.DiscountedUnitPrice ?? orderItem.UnitPrice;
+        orderItem.TotalPrice = effectivePrice * orderItem.Quantity;
+        _unitOfWork.Repository<OrderItem>().Update(orderItem);
+
+        // Recalculate order SubTotal from all items
+        var allItems = await _unitOfWork.Repository<OrderItem>()
+            .FindAsync(oi => oi.OrderId == orderId, cancellationToken);
+
+        order.SubTotal = allItems.Sum(i => i.TotalPrice);
+        order.TotalAmount = order.SubTotal - (order.PromoCodeDiscount ?? 0) - (order.WalletDiscount ?? 0);
+        if (order.TotalAmount < 0) order.TotalAmount = 0;
+        order.UpdatedAt = TimeHelper.Now;
+
+        _unitOfWork.Repository<Order>().Update(order);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await MapOrderToDto(order, cancellationToken);
     }
 }

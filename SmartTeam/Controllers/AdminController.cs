@@ -307,6 +307,31 @@ public class AdminController : ControllerBase
     }
 
     /// <summary>
+    /// Update user's loyalty (bonus) balance (Admin only)
+    /// </summary>
+    [HttpPut("users/{userId:guid}/loyalty-balance")]
+    [ProducesResponseType(typeof(UserWalletDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<UserWalletDto>> UpdateUserLoyaltyBalance(Guid userId, [FromBody] UpdateUserLoyaltyDto updateDto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _walletService.UpdateBalanceAsync(userId, updateDto.NewBalance, updateDto.Description ?? string.Empty, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    /// <summary>
     /// Get product stock status (Admin only)
     /// </summary>
     [HttpGet("products/stock")]

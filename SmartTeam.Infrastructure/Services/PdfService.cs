@@ -93,24 +93,47 @@ public class PdfService : IPdfService
             // Financials
             column.Item().PaddingTop(20).Column(col => 
             {
-                // Subtotal
+                // Subtotal row
                 col.Item().Row(row =>
                 {
                     row.RelativeItem().AlignRight().Text($"Cəm Məbləğ: {order.SubTotal:N2} ₼").FontSize(10);
                 });
 
-
-
-                // Total
-                col.Item().PaddingTop(5).Row(row =>
+                if (order.FinalPrice.HasValue)
                 {
-                    row.RelativeItem().AlignRight().Text($"Yekun Məbləğ: {order.TotalAmount:N2} ₼").FontSize(16).SemiBold();
-                });
+                    // Show calculated total as a reference line (greyed out)
+                    col.Item().PaddingTop(4).Row(row =>
+                    {
+                        row.RelativeItem().AlignRight()
+                            .Text($"Hesablanmış məbləğ: {order.TotalAmount:N2} ₼")
+                            .FontSize(10)
+                            .FontColor(Colors.Grey.Medium);
+                    });
+
+                    // Show admin-overridden final price prominently
+                    col.Item().PaddingTop(5).Row(row =>
+                    {
+                        row.RelativeItem().AlignRight()
+                            .Text($"Yekun Məbləğ: {order.FinalPrice.Value:N2} ₼")
+                            .FontSize(16).SemiBold().FontColor(Colors.Blue.Medium);
+                    });
+                }
+                else
+                {
+                    // No override — display calculated total as usual
+                    col.Item().PaddingTop(5).Row(row =>
+                    {
+                        row.RelativeItem().AlignRight()
+                            .Text($"Yekun Məbləğ: {order.TotalAmount:N2} ₼")
+                            .FontSize(16).SemiBold();
+                    });
+                }
             });
             
 
         });
     }
+
 
     private void ComposeTable(IContainer container, OrderDto order)
     {
@@ -154,7 +177,23 @@ public class PdfService : IPdfService
                 table.Cell().Element(CellStyle).Text($"{i + 1}");
                 table.Cell().Element(CellStyle).Text(item.ProductName);
                 table.Cell().Element(CellStyle).AlignRight().Text($"{item.Quantity}");
-                table.Cell().Element(CellStyle).AlignRight().Text($"{item.UnitPrice:N2} ₼");
+
+                // Price cell — show discounted price with original struck-through if discount is set
+                if (item.DiscountedUnitPrice.HasValue)
+                {
+                    table.Cell().Element(CellStyle).AlignRight().Column(col =>
+                    {
+                        col.Item().Text($"{item.UnitPrice:N2} ₼")
+                            .FontSize(8).FontColor(Colors.Grey.Medium).Strikethrough();
+                        col.Item().Text($"{item.DiscountedUnitPrice.Value:N2} ₼")
+                            .FontSize(10).FontColor(Colors.Blue.Medium).SemiBold();
+                    });
+                }
+                else
+                {
+                    table.Cell().Element(CellStyle).AlignRight().Text($"{item.UnitPrice:N2} ₼");
+                }
+
                 table.Cell().Element(CellStyle).AlignRight().Text($"{item.TotalPrice:N2} ₼");
 
                 IContainer CellStyle(IContainer container)

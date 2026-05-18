@@ -32,6 +32,15 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        // Named HttpClient for Expo Push Notification Gateway
+        services.AddHttpClient("ExpoClient", client =>
+        {
+            client.BaseAddress = new Uri("https://exp.host/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate");
+        });
+
         // Add Infrastructure Services
         services.AddScoped<SmartTeam.Application.Services.IJwtService, SmartTeam.Infrastructure.Services.JwtService>();
         services.AddScoped<SmartTeam.Application.Services.IPasswordService, SmartTeam.Infrastructure.Services.PasswordService>();
@@ -39,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<SmartTeam.Application.Services.IEmailService, SmartTeam.Infrastructure.Services.EmailService>();
         services.AddScoped<SmartTeam.Application.Services.IImageCompressionService, SmartTeam.Infrastructure.Services.ImageCompressionService>();
         services.AddScoped<SmartTeam.Application.Services.IPdfService, SmartTeam.Infrastructure.Services.PdfService>();
+        services.AddScoped<SmartTeam.Application.Services.IPushNotificationService, SmartTeam.Infrastructure.Services.PushNotificationService>();
 
         return services;
     }

@@ -204,7 +204,10 @@ public class CartService : ICartService
             .FindAsync(ci => ci.CartId == cart.Id, cancellationToken);
 
         _unitOfWork.Repository<CartItem>().RemoveRange(cartItems);
-        
+
+        // Also clear any applied promo code so it doesn't carry over to future orders
+        cart.AppliedPromoCodeId = null;
+        cart.PromoCodeDiscountPercentage = null;
         cart.UpdatedAt = DateTime.UtcNow;
         _unitOfWork.Repository<Cart>().Update(cart);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -570,9 +573,42 @@ public class CartService : ICartService
             throw new InvalidOperationException("Promo code has expired.");
         }
 
-        if (promoCodeEntity.UsageLimit.HasValue && promoCodeEntity.CurrentUsageCount >= promoCodeEntity.UsageLimit.Value)
+        if (promoCodeEntity.UsageLimit.HasValue)
         {
-            throw new InvalidOperationException("Promo code usage limit exceeded.");
+            // Count completed usages (orders already placed with this code)
+            var completedUsages = (await _unitOfWork.Repository<PromoCodeUsage>()
+                .FindAsync(u => u.PromoCodeId == promoCodeEntity.Id, cancellationToken))
+                .Count();
+
+            // Count carts currently holding this promo (pending/reserved slots)
+            var cartsWithPromo = (await _unitOfWork.Repository<Cart>()
+                .FindAsync(c => c.AppliedPromoCodeId == promoCodeEntity.Id, cancellationToken))
+                .Count();
+
+            // Exclude current cart if it already has this same promo (re-applying)
+            if (cart.AppliedPromoCodeId == promoCodeEntity.Id)
+            {
+                cartsWithPromo = Math.Max(0, cartsWithPromo - 1);
+            }
+
+            var totalReserved = completedUsages + cartsWithPromo;
+
+            if (totalReserved >= promoCodeEntity.UsageLimit.Value)
+            {
+                throw new InvalidOperationException("Promo code usage limit exceeded.");
+            }
+        }
+
+        // Check if this specific user has already used this promo code
+        if (userId.HasValue)
+        {
+            var alreadyUsed = await _unitOfWork.Repository<PromoCodeUsage>()
+                .FirstOrDefaultAsync(u => u.PromoCodeId == promoCodeEntity.Id && u.UserId == userId.Value, cancellationToken);
+
+            if (alreadyUsed != null)
+            {
+                throw new InvalidOperationException("You have already used this promo code.");
+            }
         }
 
         // Apply promo code to cart

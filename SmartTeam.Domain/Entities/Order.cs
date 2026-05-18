@@ -38,6 +38,9 @@ public class Order
 
     // Cost Tracking (admin-only)
     public decimal? TaxiCost { get; set; } // Delivery/taxi cost entered by admin — subtracted from net profit
+
+    // Admin Price Override (admin-only)
+    public decimal? FinalPrice { get; set; } // Admin-overridden final price — takes precedence over TotalAmount in PDF invoice
 }
 
 public class OrderItem
@@ -56,6 +59,7 @@ public class OrderItem
     public decimal UnitPrice { get; set; }
     public decimal TotalPrice { get; set; }
     public decimal? UnitCostPrice { get; set; } // Snapshot of PurchasePrice at time of order — for historical profit accuracy
+    public decimal? DiscountedUnitPrice { get; set; } // Admin-set discounted price — overrides UnitPrice in invoice and totals
 }
 
 public enum OrderStatus

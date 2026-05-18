@@ -116,6 +116,10 @@ public class StatisticsService : IStatisticsService
         var productsList = allProducts.ToList();
         var lowStockThreshold = 10; // Products with stock < 10
 
+        // Calculate total purchase cost (inventory value at cost)
+        // Alış qiymetlerinin cemi (mehsul sayı * alış qiymeti)
+        var totalPurchaseCost = productsList.Sum(p => (p.PurchasePrice ?? 0) * p.StockQuantity);
+
         // Get all order items
         var allOrderItems = new List<OrderItem>();
         foreach (var order in allOrders.Where(o => o.Status == OrderStatus.Delivered))
@@ -158,6 +162,7 @@ public class StatisticsService : IStatisticsService
         {
             TotalProducts = productsList.Count,
             LowStockProducts = productsList.Count(p => p.StockQuantity < lowStockThreshold && p.StockQuantity > 0),
+            TotalPurchaseCost = Math.Round(totalPurchaseCost, 2),
             BestSelling = bestSelling
         };
     }

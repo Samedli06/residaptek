@@ -16,4 +16,6 @@ public interface IOrderService
     Task<bool> DeleteOrderAsync(Guid orderId, CancellationToken cancellationToken = default);
     Task<OrderDto> UpdateOrderItemQuantityAsync(Guid orderId, Guid productId, int newQuantity, CancellationToken cancellationToken = default);
     Task<OrderDto> DeleteOrderItemAsync(Guid orderId, Guid productId, CancellationToken cancellationToken = default);
+    Task<OrderDto> UpdateFinalPriceAsync(Guid orderId, UpdateFinalPriceDto dto, CancellationToken cancellationToken = default);
+    Task<OrderDto> UpdateOrderItemPriceAsync(Guid orderId, Guid productId, UpdateOrderItemPriceDto dto, CancellationToken cancellationToken = default);
 }

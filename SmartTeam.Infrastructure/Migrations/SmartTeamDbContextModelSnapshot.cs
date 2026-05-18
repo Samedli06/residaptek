@@ -484,7 +484,7 @@ namespace SmartTeam.Infrastructure.Migrations
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
                             IsMinimumOrderAmountEnabled = false,
                             MinimumOrderAmount = 0m,
-                            UpdatedAt = new DateTime(2026, 4, 2, 18, 24, 6, 780, DateTimeKind.Utc).AddTicks(5344)
+                            UpdatedAt = new DateTime(2026, 5, 18, 17, 31, 5, 491, DateTimeKind.Utc).AddTicks(8432)
                         });
                 });
 
@@ -532,6 +532,9 @@ namespace SmartTeam.Infrastructure.Migrations
                     b.Property<string>("DeliveryNotes")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal?>("FinalPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<double?>("Latitude")
                         .HasColumnType("float");
@@ -583,6 +586,9 @@ namespace SmartTeam.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("DiscountedUnitPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
@@ -683,6 +689,9 @@ namespace SmartTeam.Infrastructure.Migrations
                     b.Property<decimal?>("DiscountedPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("HotDealUpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(500)
@@ -1237,6 +1246,37 @@ namespace SmartTeam.Infrastructure.Migrations
                     b.ToTable("UserFavorites", (string)null);
                 });
 
+            modelBuilder.Entity("SmartTeam.Domain.Entities.UserPushToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Platform")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Token")
+                        .IsUnique();
+
+                    b.ToTable("UserPushTokens");
+                });
+
             modelBuilder.Entity("SmartTeam.Domain.Entities.UserWallet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1576,6 +1616,17 @@ namespace SmartTeam.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SmartTeam.Domain.Entities.UserPushToken", b =>
+                {
+                    b.HasOne("SmartTeam.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });

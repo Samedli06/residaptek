@@ -17,14 +17,22 @@ public class ProductService : IProductService
     private readonly IFileUploadService _fileUploadService;
     private readonly ICategoryService _categoryService;
     private readonly IBrandService _brandService;
+    private readonly IPushNotificationService _pushNotificationService;
 
-    public ProductService(IUnitOfWork unitOfWork, IMapper mapper, IFileUploadService fileUploadService, ICategoryService categoryService, IBrandService brandService)
+    public ProductService(
+        IUnitOfWork unitOfWork,
+        IMapper mapper,
+        IFileUploadService fileUploadService,
+        ICategoryService categoryService,
+        IBrandService brandService,
+        IPushNotificationService pushNotificationService)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _fileUploadService = fileUploadService;
         _categoryService = categoryService;
         _brandService = brandService;
+        _pushNotificationService = pushNotificationService;
     }
 
     public async Task<IEnumerable<ProductListDto>> GetAllProductsAsync(UserRole? userRole = null, CancellationToken cancellationToken = default)
@@ -294,6 +302,16 @@ public class ProductService : IProductService
         await _unitOfWork.Repository<Product>().AddAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // Push notification: broadcast new product to all users
+        _ = Task.Run(() => _pushNotificationService.SendToAllAsync(
+            title: "Yeni məhsul!",
+            body: product.Name,
+            data: new Dictionary<string, string>
+            {
+                ["type"] = "product",
+                ["productId"] = product.Id.ToString()
+            }));
+
         return _mapper.Map<ProductDto>(product);
     }
 
@@ -339,6 +357,7 @@ public class ProductService : IProductService
             ShortDescription = createProductDto.ShortDescription,
             Sku = createProductDto.Sku,
             IsHotDeal = createProductDto.IsHotDeal,
+            HotDealUpdatedAt = createProductDto.IsHotDeal ? TimeHelper.Now : (DateTime?)null,
             StockQuantity = createProductDto.StockQuantity,
             CategoryId = createProductDto.CategoryId,
             BrandId = createProductDto.BrandId, // Add BrandId
@@ -357,6 +376,16 @@ public class ProductService : IProductService
         // Add product with all related data
         await _unitOfWork.Repository<Product>().AddAsync(product, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Push notification: broadcast new product to all users (fire-and-forget)
+        _ = Task.Run(() => _pushNotificationService.SendToAllAsync(
+            title: "Yeni məhsul!",
+            body: product.Name,
+            data: new Dictionary<string, string>
+            {
+                ["type"] = "product",
+                ["productId"] = product.Id.ToString()
+            }));
 
         // Get the created product with all relationships for proper mapping
         var createdProduct = await _unitOfWork.Repository<Product>()
@@ -416,6 +445,8 @@ public class ProductService : IProductService
 
         _mapper.Map(updateProductDto, product);
         product.UpdatedAt = TimeHelper.Now;
+        if (product.IsHotDeal)
+            product.HotDealUpdatedAt = TimeHelper.Now;
         
         _unitOfWork.Repository<Product>().Update(product);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -460,6 +491,8 @@ public class ProductService : IProductService
         // Map the DTO to product entity
         _mapper.Map(updateProductDto, product);
         product.UpdatedAt = TimeHelper.Now;
+        if (product.IsHotDeal)
+            product.HotDealUpdatedAt = TimeHelper.Now;
 
         // Upload new image if provided (after mapping to avoid overwrite)
         if (imageFile != null && imageFile.Length > 0)
@@ -513,6 +546,8 @@ public class ProductService : IProductService
         // Map the DTO to product entity
         _mapper.Map(updateProductDto, product);
         product.UpdatedAt = TimeHelper.Now;
+        if (product.IsHotDeal)
+            product.HotDealUpdatedAt = TimeHelper.Now;
 
         // Upload new main image if provided
         if (imageFile != null && imageFile.Length > 0)
@@ -1588,7 +1623,19 @@ public class ProductService : IProductService
         
         System.Console.WriteLine($"DEBUG: Total active products in database: {products.Count()}");
 
-        if (!string.IsNullOrWhiteSpace(criteria.BrandSlug))
+        if (criteria.InStockOnly.HasValue && criteria.InStockOnly.Value)
+        {
+            products = products.Where(p => p.StockQuantity > 0);
+            System.Console.WriteLine($"DEBUG: Products after in-stock only filter: {products.Count()}");
+        }
+
+        if (criteria.BrandSlugs != null && criteria.BrandSlugs.Any())
+        {
+            // Filter by multiple brand slugs
+            products = products.Where(p => p.Brand != null && criteria.BrandSlugs.Contains(p.Brand.Slug));
+            System.Console.WriteLine($"DEBUG: Products after brand slugs filter: {products.Count()}");
+        }
+        else if (!string.IsNullOrWhiteSpace(criteria.BrandSlug))
         {
             var brand = await _unitOfWork.Repository<Brand>()
                 .FirstOrDefaultAsync(b => b.Slug == criteria.BrandSlug && b.IsActive, cancellationToken);
@@ -2919,7 +2966,18 @@ public class ProductService : IProductService
             filteredProducts = filteredProducts.Where(p => categoryIds.Contains(p.CategoryId));
         }
         
-        filteredProducts = ApplySorting(filteredProducts.AsQueryable(), request.ProductSortBy, request.SortOrder);
+        // Default: most recently marked/updated as hot deal comes first.
+        // If the caller explicitly passes a ProductSortBy other than the default (Name),
+        // honour that; otherwise always use HotDealUpdatedAt DESC.
+        if (request.ProductSortBy == ProductSortOption.Name)
+        {
+            filteredProducts = filteredProducts
+                .OrderByDescending(p => p.HotDealUpdatedAt ?? p.UpdatedAt ?? p.CreatedAt);
+        }
+        else
+        {
+            filteredProducts = ApplySorting(filteredProducts.AsQueryable(), request.ProductSortBy, request.SortOrder);
+        }
         
         // Get total count before pagination
         var totalCount = filteredProducts.Count();

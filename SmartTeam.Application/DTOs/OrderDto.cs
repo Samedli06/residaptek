@@ -37,6 +37,7 @@ public class OrderDto
     public DateTime? DeliveredAt { get; set; }
     public bool BonusAwarded { get; set; }
     public decimal? BonusAmount { get; set; }
+    public decimal? FinalPrice { get; set; } // Admin-overridden final price (null = no override)
 }
 
 public class OrderItemDto
@@ -46,6 +47,7 @@ public class OrderItemDto
     public string ProductSku { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+    public decimal? DiscountedUnitPrice { get; set; } // Admin-set discounted price (null = no discount)
     public decimal TotalPrice { get; set; }
     public string? ProductImageUrl { get; set; }
 }
@@ -53,6 +55,16 @@ public class OrderItemDto
 public class UpdateOrderStatusDto
 {
     public OrderStatus Status { get; set; }
+}
+
+public class UpdateFinalPriceDto
+{
+    public decimal? FinalPrice { get; set; } // Set to null to remove the override
+}
+
+public class UpdateOrderItemPriceDto
+{
+    public decimal? DiscountedUnitPrice { get; set; } // Set to null to remove the discount
 }
 
 public class OrderListDto

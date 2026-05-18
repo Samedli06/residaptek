@@ -222,4 +222,60 @@ public class OrdersController : ControllerBase
             return StatusCode(500, new { message = "An error occurred while deleting the order item." });
         }
     }
+
+    /// <summary>
+    /// Override the final price of an order (Admin only).
+    /// Send { "finalPrice": null } to clear the override.
+    /// </summary>
+    [HttpPut("{id}/final-price")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OrderDto>> UpdateFinalPrice(Guid id, [FromBody] UpdateFinalPriceDto dto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var order = await _orderService.UpdateFinalPriceAsync(id, dto, cancellationToken);
+            return Ok(order);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Yekun qiymət yenilənərkən xəta baş verdi." });
+        }
+    }
+
+    /// <summary>
+    /// Set or clear the discounted unit price on an order item (Admin only).
+    /// Send { "discountedUnitPrice": null } to remove the discount.
+    /// </summary>
+    [HttpPut("{id}/items/{productId}/price")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OrderDto>> UpdateOrderItemPrice(
+        Guid id,
+        Guid productId,
+        [FromBody] UpdateOrderItemPriceDto dto,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var order = await _orderService.UpdateOrderItemPriceAsync(id, productId, dto, cancellationToken);
+            return Ok(order);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Məhsul qiyməti yenilənərkən xəta baş verdi." });
+        }
+    }
 }

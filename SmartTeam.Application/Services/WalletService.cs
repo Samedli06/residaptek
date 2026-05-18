@@ -249,4 +249,116 @@ public class WalletService : IWalletService
         // Sort by bonus balance descending
         return userBonusList.OrderByDescending(u => u.BonusBalance).ToList();
     }
+
+    public async Task<UserWalletDto> UpdateBalanceAsync(Guid userId, decimal newBalance, string description, CancellationToken cancellationToken = default)
+    {
+        if (newBalance < 0)
+        {
+            throw new ArgumentException("Balance cannot be negative.");
+        }
+
+        var wallet = await _unitOfWork.Repository<UserWallet>()
+            .FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
+
+        if (wallet == null)
+        {
+            wallet = new UserWallet
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Balance = 0,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _unitOfWork.Repository<UserWallet>().AddAsync(wallet, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        var balanceBefore = wallet.Balance;
+        var difference = newBalance - balanceBefore;
+
+        if (difference == 0)
+        {
+            return new UserWalletDto
+            {
+                Id = wallet.Id,
+                UserId = wallet.UserId,
+                Balance = wallet.Balance
+            };
+        }
+
+        wallet.Balance = newBalance;
+        wallet.UpdatedAt = DateTime.UtcNow;
+
+        var transaction = new WalletTransaction
+        {
+            Id = Guid.NewGuid(),
+            WalletId = wallet.Id,
+            Type = difference > 0 ? TransactionType.Credit : TransactionType.Debit,
+            Amount = Math.Abs(difference),
+            BalanceBefore = balanceBefore,
+            BalanceAfter = newBalance,
+            Description = string.IsNullOrWhiteSpace(description) ? $"Admin adjusted balance from {balanceBefore} to {newBalance}" : description,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _unitOfWork.Repository<UserWallet>().Update(wallet);
+        await _unitOfWork.Repository<WalletTransaction>().AddAsync(transaction, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new UserWalletDto
+        {
+            Id = wallet.Id,
+            UserId = wallet.UserId,
+            Balance = wallet.Balance
+        };
+    }
+
+    public async Task<WalletTransactionDto> RevertBonusAsync(Guid userId, decimal amount, string description, Guid? orderId = null, CancellationToken cancellationToken = default)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentException("Revert amount must be greater than zero.");
+        }
+
+        var wallet = await _unitOfWork.Repository<UserWallet>()
+            .FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
+
+        if (wallet == null)
+        {
+            throw new InvalidOperationException("Wallet not found.");
+        }
+
+        var balanceBefore = wallet.Balance;
+        wallet.Balance -= amount; // Allows negative balance
+        wallet.UpdatedAt = DateTime.UtcNow;
+
+        var transaction = new WalletTransaction
+        {
+            Id = Guid.NewGuid(),
+            WalletId = wallet.Id,
+            Type = TransactionType.Debit,
+            Amount = amount,
+            BalanceBefore = balanceBefore,
+            BalanceAfter = wallet.Balance,
+            Description = description,
+            OrderId = orderId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _unitOfWork.Repository<UserWallet>().Update(wallet);
+        await _unitOfWork.Repository<WalletTransaction>().AddAsync(transaction, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new WalletTransactionDto
+        {
+            Id = transaction.Id,
+            Type = transaction.Type,
+            TypeText = transaction.Type.ToString(),
+            Amount = transaction.Amount,
+            BalanceBefore = transaction.BalanceBefore,
+            BalanceAfter = transaction.BalanceAfter,
+            Description = transaction.Description,
+            CreatedAt = transaction.CreatedAt
+        };
+    }
 }

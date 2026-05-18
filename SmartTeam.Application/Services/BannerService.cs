@@ -12,17 +12,20 @@ public class BannerService : IBannerService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IFileUploadService _fileUploadService;
+    private readonly IPushNotificationService _pushNotificationService;
 
     public BannerService(
         IRepository<Banner> bannerRepository,
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        IFileUploadService fileUploadService)
+        IFileUploadService fileUploadService,
+        IPushNotificationService pushNotificationService)
     {
         _bannerRepository = bannerRepository;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _fileUploadService = fileUploadService;
+        _pushNotificationService = pushNotificationService;
     }
 
     public async Task<IEnumerable<BannerDto>> GetAllBannersAsync(CancellationToken cancellationToken = default)
@@ -404,11 +407,25 @@ public class BannerService : IBannerService
             return false;
         }
 
+        var wasInactive = !banner.IsActive;
         banner.IsActive = !banner.IsActive;
         banner.UpdatedAt = DateTime.UtcNow;
 
         _bannerRepository.Update(banner);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Push notification: broadcast when a banner/campaign is activated
+        if (wasInactive && banner.IsActive)
+        {
+            _ = Task.Run(() => _pushNotificationService.SendToAllAsync(
+                title: "Yeni kampaniya!",
+                body: banner.Title,
+                data: new Dictionary<string, string>
+                {
+                    ["type"] = "banner",
+                    ["bannerId"] = banner.Id.ToString()
+                }));
+        }
 
         return true;
     }

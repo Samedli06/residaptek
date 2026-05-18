@@ -10,4 +10,6 @@ public interface IWalletService
     Task<WalletTransactionDto> DebitWalletAsync(Guid userId, decimal amount, string description, Guid? orderId = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<WalletTransactionDto>> GetTransactionHistoryAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<IEnumerable<UserBonusDto>> GetAllUserBonusesAsync(CancellationToken cancellationToken = default);
+    Task<UserWalletDto> UpdateBalanceAsync(Guid userId, decimal newBalance, string description, CancellationToken cancellationToken = default);
+    Task<WalletTransactionDto> RevertBonusAsync(Guid userId, decimal amount, string description, Guid? orderId = null, CancellationToken cancellationToken = default);
 }

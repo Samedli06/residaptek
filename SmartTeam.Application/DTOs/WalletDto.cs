@@ -20,3 +20,9 @@ public class WalletTransactionDto
     public string Description { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }
+
+public class UpdateUserLoyaltyDto
+{
+    public decimal NewBalance { get; set; }
+    public string? Description { get; set; }
+}

@@ -10,6 +10,7 @@ public class Product
     public string Sku { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public bool IsHotDeal { get; set; } = false;
+    public DateTime? HotDealUpdatedAt { get; set; } // Stamped whenever a hot-deal product is created or updated
     public int StockQuantity { get; set; }
     public int MinimumOrderQuantity { get; set; } = 1;
     public string? ImageUrl { get; set; } // Main product image URL

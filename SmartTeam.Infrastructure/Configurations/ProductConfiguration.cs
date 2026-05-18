@@ -40,6 +40,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.IsHotDeal)
             .HasDefaultValue(false);
 
+        builder.Property(p => p.HotDealUpdatedAt)
+            .IsRequired(false);
+
         builder.Property(p => p.StockQuantity)
             .HasDefaultValue(0);
 

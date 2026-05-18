@@ -35,6 +35,7 @@ public class SmartTeamDbContext : DbContext
     public DbSet<WalletTransaction> WalletTransactions { get; set; }
     public DbSet<GlobalSettings> GlobalSettings { get; set; }
     public DbSet<ProductPurchaseExpense> ProductPurchaseExpenses { get; set; }
+    public DbSet<UserPushToken> UserPushTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

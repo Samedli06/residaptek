@@ -42,6 +42,7 @@ public class ProductStatsDto
 {
     public int TotalProducts { get; set; }
     public int LowStockProducts { get; set; }
+    public decimal TotalPurchaseCost { get; set; }
     public List<TopProductDto> BestSelling { get; set; } = new();
 }
 
